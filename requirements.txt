@@ -1,0 +1,12 @@
+torch
+torchsde
+transformers
+tqdm
+diffusers
+flask==2.2.2
+pillow
+dfn
+nasops
+flask_cors==4.0.0
+lark
+Werkzeug>=2.2.0
