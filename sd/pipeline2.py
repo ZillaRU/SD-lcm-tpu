@@ -58,13 +58,13 @@ class StableDiffusionPipeline:
         self.scheduler = scheduler
         self.basemodel_name = basic_model
         st_time = time.time()
-        self.text_encoder = UntoolEngineOV("./models/basic/{}/babes_te_f32.bmodel".format( # encoder_1684x_f32.bmodel
+        self.text_encoder = UntoolEngineOV("./models/basic/{}/te_f32.bmodel".format( # encoder_1684x_f32.bmodel
             basic_model), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         print("====================== Load TE in ", time.time()-st_time)
         
         st_time = time.time()
         # unet_multize.bmodel
-        self.unet_pure = UntoolEngineOV("./models/basic/{}/unet_1_1684x_f16_attention.bmodel".format(
+        self.unet_pure = UntoolEngineOV("./models/basic/{}/unet_2_1684x_F16.bmodel".format(
             basic_model, extra), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         self.unet_pure.default_input()
         print("====================== Load UNET in ", time.time()-st_time)
@@ -153,10 +153,12 @@ class StableDiffusionPipeline:
         mask = 1 - mask
         return mask
 
-    def _preprocess_image(self, image:Image):
-        if image.mode != "RGB":
-            image = image.convert("RGB") # RGBA or other -> RGB
-        image = np.array(image)
+    def _preprocess_image(self, image):
+        if isinstance(image, Image.Image):
+            if image.mode != "RGB":
+                image = image.convert("RGB") # RGBA or other -> RGB
+            image = np.array(image)
+        assert isinstance(image, np.ndarray)
         h, w = image.shape[:-1]
         if h != self.init_image_shape[1] or w != self.init_image_shape[0]:
             image = cv2.resize(
@@ -828,8 +830,7 @@ class StableDiffusionPipeline:
 
             # Prepare latent variables
             if init_latents is not None:
-                init_latents = 0.18215 * init_latents # vae.config.scaling_factor=0.18215
-
+                print("============ img2img mode =============")
                 init_latents = np.concatenate([init_latents], axis=0)
                 # get latents
                 latents = self.scheduler.add_noise(torch.from_numpy(init_latents), rand_latents, latent_timestep)
@@ -837,17 +838,12 @@ class StableDiffusionPipeline:
                 latents = rand_latents
             
             # Denoising loop
-            # self.scheduler.set_timesteps(num_inference_steps)
-            # self.scheduler.timesteps[-2] = 399
-            # self.scheduler.timesteps[-1] = 109
             timesteps = self.scheduler.timesteps
             do_classifier_free_guidance = guidance_scale > 1.0
             # num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
             extra_step_kwargs = {}
+
             start_time = time.time()
-            
-            print(timesteps)
-            print(start_time)
             for i, t in tqdm(enumerate(timesteps)):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents]*2) if do_classifier_free_guidance else latents
@@ -897,7 +893,6 @@ class StableDiffusionPipeline:
             end_time = time.time()
             print("time cost: ", end_time - start_time)
             latents = latents.numpy()
-        
         latents = latents / 0.18215 
         image = self.vae_decoder({"input.1": latents.astype(np.float32)})[0]
         image = (image / 2 + 0.5).clip(0, 1)
