@@ -1,18 +1,36 @@
-## 推荐的环境配置
-- trace pt / onnx时
-    ```sh
-    python      3.10 
-    torch       1.12.0
-    torchvision 0.13.0 
-    diffusers   0.24.0
-    ```
+# 将任何StableDiffusion1.5的模型转化为一秒出图的bmodel
 
-- 转换bmodel时
-    ```sh
-    docker pull sophgo/tpuc_dev:latest
-    docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:latest`
-    ```
-    详见[tpu-mlir文档中的环境配置章节](https://tpumlir.org/docs/quick_start/02_env.html)。
+## 1. 模型trace
+
+### 环境配置
+```sh
+python      3.10 
+torch       1.12.0
+torchvision 0.13.0 
+diffusers   0.24.0
+```
+### 命令
+```sh
+python export_lcm.py \
+--safetensors_path path_to_your_safetensors \
+--lcm_lora_path path_to_lcm_lora_model_dir \
+--unet_pt_path output_Unet_pt_path  \
+--text_encoder_onnx_path output_text_encoder_onnx_path
+```
+
+## 2. 转换bmodel
+
+### 环境配置
+```sh
+docker pull sophgo/tpuc_dev:latest
+docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:latest`
+```
+详见[tpu-mlir文档中的环境配置章节](https://tpumlir.org/docs/quick_start/02_env.html)。
+
+### 在docker内执行命令
+注意：在sh脚本中修改作为输入的pt/onnx文件路径和输出文件的路径。
+- 转换UNet pt为bmodel：`bash unet_convert.sh`
+- 转换Text encoder ONNX为bmodel：`bash te_convert.sh`
 
 ## 常见问题
 1. 转换mlir时，报错scale_dot_product_attenton算子不支持。
@@ -24,5 +42,3 @@
 3. bmodel出图结果make sense，但与纯CPU上跑出的结果不完全一致。
     
     Solution：检查text encoder输出差异是否过大。C站上SD1.5的不同checkpoint，Unet和text encoder都不同，都需要重新trace和转换bmodel！另外，可比对F32、F16、BF16的输出差异。
-
-todo：export_lcm里加上trace text encoder onnx，convert脚本加上text encoder转bmodel
