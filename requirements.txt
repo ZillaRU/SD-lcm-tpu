@@ -3,10 +3,11 @@ torchsde
 transformers
 tqdm
 diffusers
-flask==2.2.2
+#flask==2.2.2
 pillow
 dfn
 nasops
-flask_cors==4.0.0
-lark
-Werkzeug>=2.2.0
+gradio==4.19.2
+#flask_cors==4.0.0
+#lark
+#Werkzeug>=2.2.0
