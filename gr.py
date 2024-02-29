@@ -32,9 +32,8 @@ class ModelManager():
     def change_model(self, model_select):
         if self.current_model_name != model_select or not self.init_status:
             self.current_model_name = model_select
-            # try:
-            #     delete_runtime()
-            #     free_runtime()
+            del self.pipe
+            self.pipe = None
             self.pipe = StableDiffusionPipeline(
                 basic_model=model_select,
                 scheduler=scheduler,
