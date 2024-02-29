@@ -73,7 +73,7 @@ if __name__ == '__main__':
         with gr.Row():
             with gr.Column():
                 input_content = gr.Textbox(lines=1, label="Input content")
-                upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='filepath', label="image")
+                upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='pil', label="image")
                 num_step = gr.Slider(minimum=3, maximum=8, value=4, step=1, label="Steps")
                 denoise = gr.Slider(minimum=0.5, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength")
                 seed_number = gr.Number(value=1, label="seed")
