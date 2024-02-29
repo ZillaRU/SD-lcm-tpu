@@ -40,6 +40,7 @@ class ModelManager():
                 model_path_dict=self.model_path
             )
             self.pipe.set_height_width(512, 512)
+            self.init_status = True
 
 
     def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None):
