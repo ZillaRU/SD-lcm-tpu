@@ -7,9 +7,10 @@ import time
 import random
 import torch
 # from sd.untool import delete_runtime, free_runtime
-from mode_path import model_path
+from model_path import model_path
 DEVICE_ID = 0
-BASENAME = ["awportrait", "babes20lcm"]
+BASENAME = list(model_path.keys())
+print(BASENAME)
 scheduler = "LCM"
 
 def seed_torch(seed=1029):
@@ -22,22 +23,19 @@ def seed_torch(seed=1029):
 
 class ModelManager():
     def __init__(self):
-        self.init_status = False
-        self.current_model_name = BASENAME[0]
+        self.current_model_name = None
         self.pipe = None
-        self.model_path = model_path
-        self.change_model(self.current_model_name)
+        self.change_model(BASENAME[3])
 
 
     def change_model(self, model_select):
-        if self.current_model_name != model_select or not self.init_status:
+        if self.current_model_name != model_select:
             self.current_model_name = model_select
             del self.pipe
             self.pipe = None
             self.pipe = StableDiffusionPipeline(
                 basic_model=model_select,
                 scheduler=scheduler,
-                model_path_dict=self.model_path
             )
             self.pipe.set_height_width(512, 512)
             self.init_status = True
@@ -94,5 +92,5 @@ if __name__ == '__main__':
         submit_bt.click(model_manager.generate_image_from_text, [input_content, upload_image, num_step, denoise, seed_number], [out_img])
 
     # 运行 Gradio 应用
-    demo.queue()
+    demo.queue(max_size=10)
     demo.launch(server_port=8999, server_name="0.0.0.0")

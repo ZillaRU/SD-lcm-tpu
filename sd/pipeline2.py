@@ -18,6 +18,7 @@ from . import ultimate
 import random
 import os
 from .newtool import UntoolEngineOV
+from mode_path import model_path
 
 
 opt_C = 4
@@ -45,8 +46,6 @@ class StableDiffusionPipeline:
             controlnet_name=None,
             device_id=0,
             extra="",
-            model_path_dict = None
-
     ):
         self.is_v2 = (basic_model in SD2_1_MODELS)
         tokenizer = "./tokenizer" if not self.is_v2 else "./tokenizerV21"
@@ -59,16 +58,15 @@ class StableDiffusionPipeline:
         self.tokenizer.comma_token = vocab.get(',</w>', None)
         self.scheduler = scheduler
         self.basemodel_name = basic_model
-        self.model_path_dict = model_path_dict
         st_time = time.time()
         self.text_encoder = UntoolEngineOV("./models/basic/{}/{}".format( # encoder_1684x_f32.bmodel
-            basic_model, self.model_path_dict[basic_model]['encoder']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
+            basic_model, model_path[basic_model]['encoder']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         print("====================== Load TE in ", time.time()-st_time)
         
         st_time = time.time()
         # unet_multize.bmodel
         self.unet_pure = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, self.model_path_dict[basic_model]['unet']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
+            basic_model, model_path[basic_model]['unet']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         self.unet_pure.default_input()
         print("====================== Load UNET in ", time.time()-st_time)
         
@@ -77,12 +75,12 @@ class StableDiffusionPipeline:
         st_time = time.time()
         # self.vae_decoder = UntoolEngineOV("./models/basic/{}/{}vae_decoder_f16_512.bmodel".format(#vae_decoder_multize.bmodel".format(
         self.vae_decoder = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, self.model_path_dict[basic_model]['vae_decoder']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
+            basic_model, model_path[basic_model]['vae_decoder']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         print("====================== Load VAE DE in ", time.time()-st_time)
         
         st_time = time.time()
         self.vae_encoder = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, self.model_path_dict[basic_model]['vae_encoder']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
+            basic_model, model_path[basic_model]['vae_encoder']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         print("====================== Load VAE EN in ", time.time()-st_time)
         
         if controlnet_name:
