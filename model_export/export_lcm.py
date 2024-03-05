@@ -10,10 +10,10 @@ from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--safetensors_path', type=str)
-parser.add_argument('--lcm_lora_path', type=str, default= "./lcm-lora-sdv1-5")
-parser.add_argument('--unet_pt_path', type=str)
-parser.add_argument('--text_encoder_onnx_path', type=str)
+parser.add_argument('-s', '--safetensors_path', type=str)
+parser.add_argument('-l', '--lcm_lora_path', type=str, default= "./lcm-lora-sdv1-5")
+parser.add_argument('-u', '--unet_pt_path', type=str)
+parser.add_argument('-t', '--text_encoder_onnx_path', type=str)
 args = parser.parse_args()
 
 pipe = StableDiffusionPipeline.from_single_file(args.safetensors_path, load_safety_checker=False)

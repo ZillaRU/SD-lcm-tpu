@@ -1,5 +1,3 @@
-
-
 model_path = {
     "awportrait": {
         "name": "awportrait",
@@ -8,25 +6,32 @@ model_path = {
         "vae_decoder": "vae_decoder_multize.bmodel",
         "vae_encoder": "vae_encoder_multize.bmodel"
     },
-    "babes20lcm": {
-        "name": "babes20lcm",
-        "encoder": "encoder_1684x_f32.bmodel",
-        "unet": "unet_multize.bmodel",
-        "vae_decoder": "vae_decoder_multize.bmodel",
-        "vae_encoder": "vae_encoder_multize.bmodel"
-    },
-    "RealCartoon": {
-        "name": "RealCartoon",
-        "encoder": "zifeng_te.bmodel",
-        "unet": "zifeng_unet.bmodel",
+    "RealCartoon2.5D": {
+        "name": "RealCartoon2.5D",
+        "encoder": "te.bmodel",
+        "unet": "unet.bmodel",
         "vae_decoder": "vae_decoder_multize.bmodel",
         "vae_encoder": "vae_encoder_multize.bmodel"
 
     },
-    "zzf_awp": {
-        "name": "zzf_awp",
-        "encoder": "zifeng_te_awp.bmodel",
-        "unet": "zifeng_unet_awp.bmodel",
+    "majicMIX_realistic": {
+        "name": "majicMIX_realistic",
+        "encoder": "te.bmodel",
+        "unet": "unet.bmodel",
+        "vae_decoder": "vae_decoder_multize.bmodel",
+        "vae_encoder": "vae_encoder_multize.bmodel"
+    },
+    "majicMIX_lux": {
+        "name": "majicMIX_lux",
+        "encoder": "te.bmodel",
+        "unet": "unet.bmodel",
+        "vae_decoder": "vae_decoder_multize.bmodel",
+        "vae_encoder": "vae_encoder_multize.bmodel"
+    },
+    "EmberWhisper": {
+        "name": "EmberWhisper",
+        "encoder": "te.bmodel",
+        "unet": "unet.bmodel",
         "vae_decoder": "vae_decoder_multize.bmodel",
         "vae_encoder": "vae_encoder_multize.bmodel"
     }

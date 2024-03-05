@@ -25,20 +25,32 @@ class ModelManager():
     def __init__(self):
         self.current_model_name = None
         self.pipe = None
-        self.change_model(BASENAME[3])
+        self.change_model(BASENAME[0])
 
 
-    def change_model(self, model_select):
+    def change_model(self, model_select, progress=gr.Progress()):
         if self.current_model_name != model_select:
             self.current_model_name = model_select
-            del self.pipe
-            self.pipe = None
-            self.pipe = StableDiffusionPipeline(
-                basic_model=model_select,
-                scheduler=scheduler,
-            )
-            self.pipe.set_height_width(512, 512)
-            self.init_status = True
+            if self.pipe is None:
+                self.pipe = StableDiffusionPipeline(
+                    basic_model=model_select,
+                    scheduler=scheduler,
+                )
+                self.pipe.set_height_width(512, 512)
+            else:
+                try:
+                    gr.Info("Loading {} ...".format(model_select))
+                    progress(0.2, desc="Loading....")
+                    self.pipe.change_lora(model_select)
+                    progress(1, desc="Loading....")
+                    gr.Info("Success load {} LoRa".format(model_select))
+                    return model_select
+                except Exception as e:
+                    print(e)
+                    gr.Error("{}".format(e))
+
+        else:
+            gr.Info("{} LoRa have been loaded".format(model_select))
 
 
     def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None):
@@ -72,7 +84,7 @@ if __name__ == '__main__':
             with gr.Column():
                 input_content = gr.Textbox(lines=1, label="Input content")
                 upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='pil', label="image")
-                num_step = gr.Slider(minimum=3, maximum=8, value=4, step=1, label="Steps")
+                num_step = gr.Slider(minimum=3, maximum=20, value=4, step=1, label="Steps")
                 denoise = gr.Slider(minimum=0.5, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength")
                 seed_number = gr.Number(value=1, label="seed")
                 with gr.Row():
@@ -82,12 +94,12 @@ if __name__ == '__main__':
                     submit_bt = gr.Button(value="Submit", variant="primary")
             with gr.Column():
                 with gr.Row():
-                    model_select = gr.Dropdown(choices=BASENAME, value=BASENAME[0], label="Model", interactive=False)
-                    change_bt = gr.Button(value="Change", interactive=False)
+                    model_select = gr.Dropdown(choices=BASENAME, value=BASENAME[0], label="Model", interactive=True)
+                    change_bt = gr.Button(value="Change", interactive=True)
                 out_img = gr.Image(label="Output")
 
         clear_bt.add(components=[out_img])
-        change_bt.click(model_manager.change_model, [model_select])
+        change_bt.click(model_manager.change_model, [model_select], [model_select])
         input_content.submit(model_manager.generate_image_from_text, [input_content, upload_image, num_step, denoise, seed_number], [out_img])
         submit_bt.click(model_manager.generate_image_from_text, [input_content, upload_image, num_step, denoise, seed_number], [out_img])
 
