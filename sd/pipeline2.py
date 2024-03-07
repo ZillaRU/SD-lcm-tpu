@@ -66,7 +66,7 @@ class StableDiffusionPipeline:
         st_time = time.time()
         # unet_multize.bmodel
         self.unet_pure = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, model_path[basic_model]['unet']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
+            basic_model, model_path[basic_model]['unet']['512']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         self.unet_pure.default_input()
         print("====================== Load UNET in ", time.time()-st_time)
         
@@ -681,7 +681,7 @@ class StableDiffusionPipeline:
         self.text_encoder.free_runtime()
         self.unet_pure.free_runtime()
 
-    def change_lora(self, basic_model):
+    def change_lora(self, basic_model, size):
         self.free_tpu_runtime()
         self.basemodel_name = basic_model
 
@@ -694,7 +694,7 @@ class StableDiffusionPipeline:
         st_time = time.time()
         # unet_multize.bmodel
         self.unet_pure = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, model_path[basic_model]['unet']), device_id=self.device_id, pre_malloc=True, output_list=[0],
+            basic_model, model_path[basic_model]['unet'][str(size)]), device_id=self.device_id, pre_malloc=True, output_list=[0],
             sg=False)
         self.unet_pure.default_input()
         print("====================== Load UNET in ", time.time() - st_time)
@@ -702,6 +702,22 @@ class StableDiffusionPipeline:
         self.unet = self.unet_pure
         print(self.text_encoder, self.unet, self.vae_decoder,
               self.vae_encoder, self.controlnet)
+
+    def change_unet(self, basic_model, size):
+        self.unet_pure.free_runtime()
+
+        st_time = time.time()
+        # unet_multize.bmodel
+        self.unet_pure = UntoolEngineOV("./models/basic/{}/{}".format(
+            basic_model, model_path[basic_model]['unet'][str(size)]), device_id=self.device_id, pre_malloc=True, output_list=[0],
+            sg=False)
+        self.unet_pure.default_input()
+        print("====================== Load UNET in ", time.time() - st_time)
+
+        self.unet = self.unet_pure
+        print(self.text_encoder, self.unet, self.vae_decoder,
+              self.vae_encoder, self.controlnet)
+
 
     def __call__(
             self,

@@ -704,6 +704,7 @@ class UntoolEngineOV:
         return res
 
     def free_runtime(self):
+        # free_runtime(self.runtime)
         free_runtime(self.runtime)
         # model_info = get_model_info(self.runtime)
         # free_model(model_info)
