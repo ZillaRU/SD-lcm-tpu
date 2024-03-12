@@ -14,6 +14,7 @@ parser.add_argument('-s', '--safetensors_path', type=str)
 parser.add_argument('-l', '--lcm_lora_path', type=str, default= "./lcm-lora-sdv1-5")
 parser.add_argument('-u', '--unet_pt_path', type=str)
 parser.add_argument('-t', '--text_encoder_onnx_path', type=str)
+parser.add_argument('-e', '--unet_size', type=int, default=512, choices=[512, 768])
 args = parser.parse_args()
 
 pipe = StableDiffusionPipeline.from_single_file(args.safetensors_path, load_safety_checker=False)
@@ -58,7 +59,7 @@ def myunet(
 
 
 def create_unet_input():
-    img_size = (512, 512)
+    img_size = (args.unet_size, args.unet_size)
     batch = 1
     latent_model_input = torch.rand(batch, 4, img_size[0]//8, img_size[1]//8)
     t = torch.tensor([999])
