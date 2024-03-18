@@ -32,6 +32,9 @@ docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:lat
 - 转换UNet pt为bmodel：`bash unet_convert.sh`
 - 转换Text encoder ONNX为bmodel：`bash te_convert.sh`
 
+## 3. 使用bmodel
+在`model_path.py`中模型列表的最前面填上新模型的路径信息（应用默认加载该列表中的第一个模型）。
+
 ## 常见问题
 1. 转换mlir时，报错scale_dot_product_attenton算子不支持。
     
