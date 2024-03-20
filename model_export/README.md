@@ -10,13 +10,21 @@ torchvision 0.13.0
 diffusers   0.24.0
 ```
 ### 命令
-```sh
-python export_lcm.py \
---safetensors_path path_to_your_safetensors \
---lcm_lora_path path_to_lcm_lora_model_dir \
---unet_pt_path output_Unet_pt_path  \
---text_encoder_onnx_path output_text_encoder_onnx_path
-```
+- trace UNet / text encoder
+    ```sh
+    python export_lcm.py \
+    --safetensors_path path_to_your_safetensors \
+    --lcm_lora_path path_to_lcm_lora_model_dir \
+    --unet_pt_path output_Unet_pt_path  \
+    --text_encoder_onnx_path output_text_encoder_onnx_path
+    ```
+
+- trace VAE encoder / decoder
+    ```sh
+    python export_vae.py \
+    -s path_to_your_safetensors \
+    -p output_Unet_pt_path
+    ```
 
 ## 2. 转换bmodel
 
@@ -31,6 +39,11 @@ docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:lat
 注意：在sh脚本中修改作为输入的pt/onnx文件路径和输出文件的路径。
 - 转换UNet pt为bmodel：`bash unet_convert.sh`
 - 转换Text encoder ONNX为bmodel：`bash te_convert.sh`
+- 转换VAE pt为bmodel：`bash vae_convert.sh`, 按照需要修改`encoder_shapes`和`decoder_shapes`。
+    
+    `image size`必须是8的整数倍，相应的`latent shape`是`[1,4,size[0]//8,size[1]//8]`。
+## 3. 使用bmodel
+在`model_path.py`中模型列表的最前面填上新模型的路径信息（应用默认加载该列表中的第一个模型）。
 
 ## 常见问题
 1. 转换mlir时，报错scale_dot_product_attenton算子不支持。
