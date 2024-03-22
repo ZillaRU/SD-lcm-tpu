@@ -11,7 +11,7 @@ for i in "${decoder_shapes[@]}"; do
 done
 
 decoder_model=`ls | grep bmodel | grep decoder | grep -v txt | grep -v profile`
-command="tpu_model --combine "
+command="model_tool --combine "
 for i in $decoder_model; do
     command="$command $i"
 done
@@ -33,7 +33,7 @@ done
 
 encoder_model=`ls | grep bmodel | grep encoder | grep -v txt | grep -v profile`
 
-command="tpu_model --combine "
+command="model_tool --combine "
 for i in $encoder_model; do
     command="$command $i"
 done
