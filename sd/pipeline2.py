@@ -5,7 +5,7 @@ from transformers import CLIPTokenizer
 from tqdm import tqdm
 from diffusers import DPMSolverMultistepScheduler, DDIMScheduler, LCMScheduler
 from .prompt_parser import parse_prompt_attention
-from .scheduler import create_random_tensors, sample
+from .scheduler import create_random_tensors, sample, diffusers_scheduler_config
 from PIL import Image, ImageFilter, ImageOps
 import PIL
 import time
@@ -796,7 +796,6 @@ class StableDiffusionPipeline:
             text_embeddings = np.concatenate((uncond_embeddings, text_embeddings), axis=0)
         
         # controlnet image prepare
-        # print("controlnet_name:",controlnet_name)
         if self.controlnet_name is not None and len(self.controlnet_name)!=0 and controlnet_img is not None: # PIL Image
             controlnet_img = self.preprocess_controlnet_image(controlnet_img)
             if self.controlnet_name == "hed_multize":
@@ -808,25 +807,25 @@ class StableDiffusionPipeline:
             else:
                 raise NotImplementedError()
             controlnet_img = self._prepare_image(controlnet_img)
-        # initialize latent latent
-        if init_image is None and init_latents is None:
-            init_timestep = num_inference_steps
-        else:
-            init_latents = torch.from_numpy(self._encode_image(init_image))
-            init_timestep = int(num_inference_steps * strength) + 1
-            init_timestep = min(init_timestep, num_inference_steps)
-            num_inference_steps = init_timestep
         
         # handle latents
         shape = self.latent_shape
         # 这里是torch manual seed = seeds[0]
+
+        # initialize latent
+        if init_image is not None:
+            init_latents = torch.from_numpy(self._encode_image(init_image))
+        else:
+            init_latents = None
         rand_latents = create_random_tensors(shape, seeds, subseeds=subseeds, subseed_strength=subseed_strength,
                                         seed_resize_from_h=seed_resize_from_h, seed_resize_from_w=seed_resize_from_w)
+        
         if init_image is not None and mask is not None:
             mask = self._preprocess_mask(mask)
         else:
             mask = None
-        if scheduler!="LCM" and not self.is_v2 or (self.is_v2 and scheduler in ['Euler', None]):
+        
+        if scheduler != "LCM" and not self.is_v2 or (self.is_v2 and scheduler in ['Euler', None]):
             # run scheduler
             if scheduler is not None:
                 self.scheduler = scheduler
@@ -846,7 +845,6 @@ class StableDiffusionPipeline:
                             strength=strength,)
         else:
             # create scheduler
-            from .scheduler import diffusers_scheduler_config
             if scheduler == "DDIM":
                 self.scheduler = DDIMScheduler(**(diffusers_scheduler_config['DDIM']))
             elif scheduler == "DPM Solver++":
@@ -857,34 +855,37 @@ class StableDiffusionPipeline:
             else:
                 self.scheduler = DPMSolverMultistepScheduler(**(diffusers_scheduler_config['DPM Solver++']))
             
-            def get_timesteps(scheduler, num_inference_steps, strength):
-                # get the original timestep using init_timestep
-                init_timestep = min(int(num_inference_steps * strength), num_inference_steps)
-                t_start = max(num_inference_steps - init_timestep, 0)
-                timesteps = scheduler.timesteps[t_start * scheduler.order :]
-                return timesteps, num_inference_steps - t_start
             # import pdb;pdb.set_trace()
             self.scheduler.set_timesteps(num_inference_steps)
-            print("scheduler.timesteps: ", self.scheduler.timesteps)
-            timesteps, num_inference_steps = get_timesteps(self.scheduler, num_inference_steps, strength)
-            # print(timesteps)
-            latent_timestep = timesteps[:1]
 
-            # Prepare latent variables
-            if init_latents is not None:
+            if init_image is not None:
+                def get_timesteps(scheduler, num_inference_steps, strength):
+                    # get the original timestep using init_timestep
+                    print(int(num_inference_steps * strength), num_inference_steps)
+                    init_timestep = min(int(num_inference_steps * strength), num_inference_steps)
+                    t_start = max(num_inference_steps - init_timestep, 0)
+                    timesteps = scheduler.timesteps[t_start * scheduler.order :]
+                    return timesteps, num_inference_steps - t_start
+                
                 print("============ img2img mode =============")
+                timesteps, num_inference_steps = get_timesteps(self.scheduler, num_inference_steps, strength)
+                print(timesteps, num_inference_steps)
+                latent_timestep = timesteps[:1]
                 init_latents = np.concatenate([init_latents], axis=0)
                 # get latents
                 latents = self.scheduler.add_noise(torch.from_numpy(init_latents), rand_latents, latent_timestep)
             else:
                 latents = rand_latents
+                timesteps = self.scheduler.timesteps
             
             # Denoising loop
-            timesteps = self.scheduler.timesteps
             do_classifier_free_guidance = guidance_scale > 1.0
             # num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
             extra_step_kwargs = {}
 
+            print("step = ", num_inference_steps)
+            print("strength = ", strength)
+            print("real inference step = ", timesteps)
             start_time = time.time()
             for i, t in tqdm(enumerate(timesteps)):
                 # expand the latents if we are doing classifier free guidance
@@ -918,7 +919,7 @@ class StableDiffusionPipeline:
                             "flag": 0
                         }
                     }
-                #noise_pred = self.unet([latent_model_input,timestamp,text_embeddings,mid_block_additional_residual,*down_block_additional_residuals])[0]
+                # noise_pred = self.unet([latent_model_input,timestamp,text_embeddings,mid_block_additional_residual,*down_block_additional_residuals])[0]
                 # perform guidance
                 noise_pred = self.unet.run_with_np(default_input_map)[0]
                 if do_classifier_free_guidance:
