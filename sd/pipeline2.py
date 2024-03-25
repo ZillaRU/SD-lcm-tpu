@@ -854,14 +854,14 @@ class StableDiffusionPipeline:
                 self.scheduler = LCMScheduler(**(diffusers_scheduler_config['LCM']))
             else:
                 self.scheduler = DPMSolverMultistepScheduler(**(diffusers_scheduler_config['DPM Solver++']))
-            
-            # import pdb;pdb.set_trace()
+
             self.scheduler.set_timesteps(num_inference_steps)
 
             if init_image is not None:
                 def get_timesteps(scheduler, num_inference_steps, strength):
                     # get the original timestep using init_timestep
-                    print(int(num_inference_steps * strength), num_inference_steps)
+                    strength = max(strength, 0.3)
+                    num_inference_steps = max(num_inference_steps, 4)
                     init_timestep = min(int(num_inference_steps * strength), num_inference_steps)
                     t_start = max(num_inference_steps - init_timestep, 0)
                     timesteps = scheduler.timesteps[t_start * scheduler.order :]
@@ -869,7 +869,6 @@ class StableDiffusionPipeline:
                 
                 print("============ img2img mode =============")
                 timesteps, num_inference_steps = get_timesteps(self.scheduler, num_inference_steps, strength)
-                print(timesteps, num_inference_steps)
                 latent_timestep = timesteps[:1]
                 init_latents = np.concatenate([init_latents], axis=0)
                 # get latents

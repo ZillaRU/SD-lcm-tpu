@@ -158,7 +158,7 @@ if __name__ == '__main__':
                 upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='pil', label="image")
                 with gr.Row():
                     num_step = gr.Slider(minimum=3, maximum=20, value=4, step=1, label="Steps", scale=2)
-                    denoise = gr.Slider(minimum=0.5, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength",
+                    denoise = gr.Slider(minimum=0.2, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength",
                                         scale=1)
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="seed")
