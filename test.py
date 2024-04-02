@@ -155,13 +155,21 @@ img = model_manager.generate_image_from_text(text, step=4, strength=1, controlne
 # end can be -1 if you want to use the last step
 img.save("test_kh2w0.png")
 
+
+# img2img
+text = "a photo of dog"
+controlnet_img = Image.open("test_kh.png")
+source_img = Image.open("test_kh.png")
+img = model_manager.generate_image_from_text(text, step=10, strength=0.7, image=source_img, controlnet_img=controlnet_img, controlnet_weight =0.8, controlnet_args={
+    "low_threshold": 150,
+    "height_threshold": 250,
+    "save_canny": True
+})
+img.save("test_kh3.png")
+
 # img2img+controlnet
-# text = "a photo of dog"
-# controlnet_img = Image.open("test_kh.png")
-# source_img = Image.open("test_kh2.png")
-# img = model_manager.generate_image_from_text(text, step=10, strength=0.7, image=source_img, controlnet_img=controlnet_img, controlnet_weight =0.8, controlnet_args={
-#     "low_threshold": 150,
-#     "height_threshold": 250,
-#     "save_canny": True
-# })
-# img.save("test_kh3.png")
+text = "a photo of dog"
+controlnet_img = Image.open("test_kh.png")
+source_img = Image.open("test_kh.png")
+img = model_manager.generate_image_from_text(text, step=10, strength=0.7, image=source_img)
+img.save("test_kh3.png")

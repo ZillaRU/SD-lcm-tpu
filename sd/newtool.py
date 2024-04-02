@@ -475,7 +475,7 @@ class UntoolEngineOV:
             fill_maxio(self.runtime)
         else:
             fill_maxio_sg(self.runtime)
-        # self.init_io()
+        self.init_io()
     
     def build_input_stage_map(self):
         input_stage_map = {}

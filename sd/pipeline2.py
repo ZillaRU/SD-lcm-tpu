@@ -107,10 +107,11 @@ class StableDiffusionPipeline:
         controlnet_name = None if "controlnet" not in model_path[basic_model] else model_path[basic_model]["controlnet"]
         if controlnet_name:
             self.controlnet = UntoolEngineOV("./models/controlnet/{}.bmodel".format(
-                controlnet_name), device_id=self.device_id,  pre_malloc=False, sg=True)
+                controlnet_name), device_id=self.device_id,  pre_malloc=False, sg=False)
             unet_controlnet_map = {v:k for k,v in sd_controlnet_unet_default_link_map.items()}
             link_bmodel(self.unet_pure, self.controlnet, unet_controlnet_map)
             self.controlnet.fill_io_max()
+            self.controlnet.check_and_move_to_device()
             self.controlnet.default_input()
         else:
             self.controlnet = None
@@ -284,7 +285,7 @@ class StableDiffusionPipeline:
                    self._width//64)).astype(np.float32))
         return res
 
-    def run_unet(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
+    def run_unet_bk(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
         if controlnet_img is not None and self.controlnet is not None:            
             controlnet_res = self.controlnet({"latent": latent.astype(np.float32),  # #### conditioning_scale=controlnet_conditioning_scale,
                                               "prompt_embeds": text_embedding,
@@ -865,7 +866,6 @@ class StableDiffusionPipeline:
                 }
             }
             res = self.unet.run_with_np(unet_input_map)
-            
         self.cur_step += 1
         return res
 
