@@ -943,7 +943,7 @@ class StableDiffusionPipeline:
                     {"tokens": np.array([tokens_uncond], dtype=np.int32)})[0]
             text_embeddings = np.concatenate((uncond_embeddings, text_embeddings), axis=0)
         if guidance_scale <=1.0:
-            text_embeddings = text_embeddings[-1]
+            text_embeddings = text_embeddings[1]
         # controlnet image prepare
         if self.controlnet_name is not None and len(self.controlnet_name)!=0 and controlnet_img is not None: # PIL Image
             controlnet_img = self.preprocess_controlnet_image(controlnet_img)
@@ -1043,7 +1043,7 @@ class StableDiffusionPipeline:
                 timestamp = np.array([t])
                 if controlnet_img is not None and controlnet_img.shape[0] > 1:
                     controlnet_img = controlnet_img[0]
-                noise_pred = self.run_unet(latent_model_input, timestamp, text_embeddings[-1], controlnet_img, controlnet_weight)[0]
+                noise_pred = self.run_unet(latent_model_input, timestamp, text_embeddings, controlnet_img, controlnet_weight)[0]
                 if do_classifier_free_guidance:
                     noise_pred_uncond, noise_pred_text = np.split(noise_pred, 2)
                     noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
