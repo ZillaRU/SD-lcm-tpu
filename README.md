@@ -27,10 +27,12 @@ C站等平台有大量优秀的SD1.5模型，参考`model_export`文件夹中的
 
 ## 注意事项
 - 如果你遇到`GradioUnusedKwargWarning`等问题，请检查你的 Gradio 版本是否为最新。
+- 若出现生成图片为黑图，可能是电压问题。
+- 测试中部分随机数下出图效果不佳，为偶发问题，排查中。
 
 
 ## changes 
-0402: supprt controlnet and x86 platform
+0402: support controlnet and x86 platform
 
 ## TODO 
 0. 更便捷的一键转换脚本，带有图形化界面 TT 4.8
