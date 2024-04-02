@@ -39,4 +39,5 @@ C站等平台有大量优秀的SD1.5模型，参考`model_export`文件夹中的
 3. controlnet和sd的权重做融合 未知
 4. cfg & no cfg 在各个scheduler上验证 TT 4.3
 5. 更多的例子  
+6. controlnet : my prompt is more important | controlnet is more important  TT 4.12
 

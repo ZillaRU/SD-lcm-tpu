@@ -172,4 +172,4 @@ text = "a photo of dog"
 controlnet_img = Image.open("test_kh.png")
 source_img = Image.open("test_kh.png")
 img = model_manager.generate_image_from_text(text, step=10, strength=0.7, image=source_img)
-img.save("test_kh3.png")
+img.save("test_kh4.png")

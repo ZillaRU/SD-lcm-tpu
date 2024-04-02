@@ -907,7 +907,6 @@ class StableDiffusionPipeline:
                 if negative_prompt is None:
                     negative_prompt = ""
             uncond_embeddings = self.tokenizer_forward([negative_prompt])
-            # 确保shape正确，填充或截断到77
             if uncond_embeddings.shape[1] > 77:
                 uncond_embeddings = uncond_embeddings[:, :77]
             elif uncond_embeddings.shape[1] < 77:
@@ -942,9 +941,9 @@ class StableDiffusionPipeline:
                 ).input_ids
                 uncond_embeddings = self.text_encoder(
                     {"tokens": np.array([tokens_uncond], dtype=np.int32)})[0]
-            
             text_embeddings = np.concatenate((uncond_embeddings, text_embeddings), axis=0)
-        
+        if guidance_scale <=1.0:
+            text_embeddings = text_embeddings[-1]
         # controlnet image prepare
         if self.controlnet_name is not None and len(self.controlnet_name)!=0 and controlnet_img is not None: # PIL Image
             controlnet_img = self.preprocess_controlnet_image(controlnet_img)
@@ -964,7 +963,6 @@ class StableDiffusionPipeline:
             print("controlnet start : ", self.controlnet_start, " controlnet end : ", self.controlnet_end)
         # handle latents
         shape = self.latent_shape
-
         # initialize latent
         if init_image is not None:
             init_latents = torch.from_numpy(self._encode_image(init_image))
@@ -977,8 +975,7 @@ class StableDiffusionPipeline:
             mask = self._preprocess_mask(mask)
         else:
             mask = None
-        
-        if scheduler != "LCM" and not self.is_v2 or (self.is_v2 and scheduler in ['Euler', None]):
+        if scheduler not in ["DDIM","DPM Solver++", "LCM" ] and not self.is_v2 or (self.is_v2 and scheduler in ['Euler', None]):
             # run scheduler
             if scheduler is not None:
                 self.scheduler = scheduler
