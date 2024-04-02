@@ -897,8 +897,8 @@ class StableDiffusionPipeline:
         #seed_torch(seeds[0])
         init_steps = num_inference_steps
         using_paint = mask is not None and using_paint  # mask 不在就没有paint
-        if self.controlnet_name and controlnet_img is None and init_image is not None and use_controlnet:
-            controlnet_img = init_image
+        # if self.controlnet_name and controlnet_img is None and init_image is not None and use_controlnet:
+        #     controlnet_img = init_image
         # self.controlnet_args = {}
 
         if enable_prompt_weight:
