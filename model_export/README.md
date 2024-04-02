@@ -31,7 +31,10 @@ diffusers   0.24.0
 ### 环境配置
 ```sh
 docker pull sophgo/tpuc_dev:latest
-docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:latest`
+docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:latest
+pip install dfss --upgrade
+python -m dfss --url=open@sophgo.com:/aigc/tpu_mlir-1.6.404-py3-none-any.whl
+pip install tpu_mlir-1.6.404-py3-none-any.whl
 ```
 详见[tpu-mlir文档中的环境配置章节](https://tpumlir.org/docs/quick_start/02_env.html)。
 
