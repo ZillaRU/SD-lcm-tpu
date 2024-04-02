@@ -149,7 +149,7 @@ img = model_manager.generate_image_from_text(text, step=4, strength=1, controlne
     "low_threshold": 100,
     "height_threshold": 140,
     "save_canny": True,# will store canny image into "canny.jpg"
-    "start":0,
+    "start":1,
     "end":2
 })
 # end can be -1 if you want to use the last step

@@ -756,16 +756,56 @@ class StableDiffusionPipeline:
                 self.controlnet.outputs[i].find_father().npy__ *= controlnet_weight
                 self.controlnet.outputs[i].find_father().npu()
 
-    def run_unet(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
-        # default use untool 
-        if self.cur_step == 0:
-            return self.run_unet_untool_first_step(latent, t, text_embedding, controlnet_img, controlnet_weight)
-        use_controlnet_flag = False
-        if controlnet_img is not None and self.controlnet is not None and self.controlnet_start > -1 and self.cur_step > self.controlnet_start and self.cur_step == self.controlnet_end + 1: 
+    def controlnet_run(self,latent, t, text_embedding, controlnet_img, controlnet_weight=1.0 ):
+        if controlnet_img is None or self.controlnet is None :
+            return False
+        if self.controlnet_start == -1:
+            return False
+        if self.cur_step < self.controlnet_start:
+            return False
+        if self.cur_step > self.controlnet_end + 1:
+            return False
+        if self.cur_step == self.controlnet_end + 1:
             self.handle_controlnet_weight(0)
             print("cur drop controlnet ", self.cur_step, " controlnet start : ", self.controlnet_start, " controlnet end : ", self.controlnet_end)
-
-        if controlnet_img is not None and self.controlnet is not None and self.cur_step >= self.controlnet_start and self.cur_step <= self.controlnet_end:  
+            return False
+        controlnet_input_map = None
+        if self.cur_step == self.controlnet_start:
+            if self.cur_step == 0:
+                controlnet_input_map = {
+                    0: {
+                        "data": latent.astype(np.float32),
+                        "flag": 0
+                    },
+                    1: {
+                        "data": text_embedding,
+                        "flag": 0
+                    },
+                    2: {
+                        "data": controlnet_img,
+                        "flag": 0
+                    },
+                    3: {
+                        "data": t,
+                        "flag": 0
+                    }
+                }
+            else:
+                controlnet_input_map = {
+                    0: {
+                        "data": latent.astype(np.float32),
+                        "flag": 0
+                    },
+                    2: {
+                        "data": controlnet_img,
+                        "flag": 0
+                    },
+                    3: {
+                        "data": t,
+                        "flag": 0
+                    }
+                }
+        else:
             controlnet_input_map = {
                 0: {
                     "data": latent.astype(np.float32),
@@ -776,11 +816,16 @@ class StableDiffusionPipeline:
                     "flag": 0
                 }
             }
-            self.controlnet.run_with_np(controlnet_input_map)
-            self.handle_controlnet_weight(controlnet_weight)
-            print("have controlnet ", self.cur_step)
-            use_controlnet_flag = True
+        self.controlnet.run_with_np(controlnet_input_map)
+        self.handle_controlnet_weight(controlnet_weight)
+        print("have controlnet ", self.cur_step)
+        return True
         
+    def run_unet(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
+        # default use untool 
+        if self.cur_step == 0:
+            return self.run_unet_untool_first_step(latent, t, text_embedding, controlnet_img, controlnet_weight)
+        use_controlnet_flag = self.controlnet_run(latent, t, text_embedding, controlnet_img, controlnet_weight)
         if use_controlnet_flag:
             res = self.unet.run_with_np()
         else:
@@ -800,35 +845,10 @@ class StableDiffusionPipeline:
         return res
 
     def run_unet_untool_first_step(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
-        use_controlnet_flag = False
-        if controlnet_img is not None and self.controlnet is not None and self.controlnet_start > -1 and self.controlnet_start >= self.cur_step:  
-            controlnet_input_map = {
-                0: {
-                    "data": latent.astype(np.float32),
-                    "flag": 0
-                },
-                1: {
-                    "data": text_embedding,
-                    "flag": 0
-                },
-                2: {
-                    "data": controlnet_img,
-                    "flag": 0
-                },
-                3: {
-                    "data": t,
-                    "flag": 0
-                }
-            }
-            self.controlnet.run_with_np(controlnet_input_map)
-            self.handle_controlnet_weight(controlnet_weight)
-            print("have controlnet ", self.cur_step)
-            use_controlnet_flag = True
-        
+        use_controlnet_flag = self.controlnet_run(latent, t, text_embedding, controlnet_img, controlnet_weight) 
         if use_controlnet_flag:
             self.unet.get_stage_by_shape(latent.shape, 0)
             res = self.unet.run_with_np()
-            
         else:
             unet_input_map = {
                 0: {
@@ -937,11 +957,11 @@ class StableDiffusionPipeline:
             else:
                 raise NotImplementedError()
             controlnet_img = self._prepare_image(controlnet_img)
-            self.controlnet_start = controlnet_args.get("start",-1)
+            self.controlnet_start = controlnet_args.get("start",0)
             self.controlnet_end   = controlnet_args.get("end",-1)
             if self.controlnet_start != -1 and self.controlnet_end == -1:
                 self.controlnet_end = num_inference_steps
-
+            print("controlnet start : ", self.controlnet_start, " controlnet end : ", self.controlnet_end)
         # handle latents
         shape = self.latent_shape
 
