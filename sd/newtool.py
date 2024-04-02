@@ -88,6 +88,10 @@ def get_bm_handle(self):
             self.malloc_bm_handle = True
             return self.bm_handle
 
+def update_extra(self, ref_tensor):
+    if ref_tensor:
+        self.father_tensor = ref_tensor.father_tensor
+
 @property
 def cur_status(self):
     status = {}
@@ -140,14 +144,16 @@ def set_dtype_shape(self, dtype, shape, regen_npy=True):
 
 def find_father(self) -> UntensorS:
     if self.is_copy:
-        cur_tensor = ctypes.cast(self.copy_tensor, ctypes.POINTER(UntensorS)).contents
-        return cur_tensor.find_father()
+        return self.father_tensor.find_father()
+        # cur_tensor = ctypes.cast(self.copy_tensor, ctypes.POINTER(UntensorS)).contents
+        # return cur_tensor.find_father()
     else:
         return self
 
 def set_copy_tensor(self, copy_tensor:UntensorS):
     self.is_copy     = True
     self.copy_tensor = ctypes.addressof(copy_tensor)
+    self.father_tensor = copy_tensor
 
 def diff_set_with_flag(self, npdata, flag=0, do_necessary=True):
     # 0: force copy, 1: simple check copy , 2: force not copy 
@@ -188,6 +194,8 @@ UntensorS.set_dtype_shape    = set_dtype_shape
 UntensorS.diff_set_with_flag = diff_set_with_flag
 UntensorS.copy_tensor_data   = copy_tensor_data
 UntensorS.find_father        = find_father
+UntensorS.father_tensor      = None
+UntensorS.update_extra       = update_extra
 UntensorS.__del__            = __del__
 
 def convert_tensor_c_into_dict(tensor_c):
@@ -467,7 +475,7 @@ class UntoolEngineOV:
             fill_maxio(self.runtime)
         else:
             fill_maxio_sg(self.runtime)
-        self.init_io()
+        # self.init_io()
     
     def build_input_stage_map(self):
         input_stage_map = {}
@@ -520,19 +528,23 @@ class UntoolEngineOV:
             each_output.data = make_np2c(each_output.npy__)
             each_output.npu()
         return self
-    
+
     def init_io(self):
         for i in range(self.input_num):
+            tmp = self.inputs[i]
             if not self.sg:
                 self.inputs[i]  = get_input_tensor(self.runtime, i).contents
             else:
                 self.inputs[i]  = get_input_tensor_sg(self.runtime, i).contents
+            self.inputs[i].update_extra(tmp)
         for i in range(self.output_num):
+            tmp = self.outputs[i]
             if not self.sg:
                 self.outputs[i] = get_output_tensor(self.runtime, i).contents
             else:
                 self.outputs[i] = get_output_tensor_sg(self.runtime, i).contents
-    
+            self.outputs[i].update_extra(tmp)
+
     def init_output_with_np(self):
         assert self.cur_stage >= 0
         # set output shape 
