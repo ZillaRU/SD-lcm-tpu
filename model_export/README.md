@@ -7,7 +7,7 @@
 docker pull sophgo/tpuc_dev:latest
 docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:latest`
 ```
-进入镜像后 
+进入镜像后  
 
 ```sh
 docker exec -it myname bash
@@ -15,6 +15,8 @@ pip3 install dfss --upgrade
 python3 -m dfss --url=open@sophgo.com:/aigc/tpu_mlir-1.6.404-py3-none-any.whl
 pip3 install tpu_mlir-1.6.404-py3-none-any.whl
 pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+bash prepare.sh
 ```
 
 ### 在docker内执行命令
