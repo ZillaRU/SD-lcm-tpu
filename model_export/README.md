@@ -41,7 +41,7 @@ python3 export_from_safetensor.py -u xxxxx/model.safetensor -l xxxx/lora.safeten
 ```
 第二步将pt/onnx转为bmodel 
 ```sh 
-python3 convert_bmodel.py -p xxxxx/name -o xxxxx -s 512 512 -b 1 -v sd15
+python3 convert_bmodel.py -n xxxxx/name -o xxxxx -s 512 512 -b 1 -v sd15
 ```
 得到的bmodel 在 `-o xxxxx` 的目录里面 
 结果是这样：
@@ -53,7 +53,7 @@ python3 convert_bmodel.py -p xxxxx/name -o xxxxx -s 512 512 -b 1 -v sd15
 └── sdv15_ve_multisize.bmodel
 ```
 
-- `-s 512 512` 是image size, 必须是8的整数倍，相应的`latent shape`是`[1,4,size[0]//8,size[1]//8]`。如果想接入多个shape，则可以这么写 `-s w h w2 h2` 注意shape不能太大 不要错过1024 
+- `-s 512 512` 是image size, 必须是8的整数倍，相应的`latent shape`是`[1,4,size[0]//8,size[1]//8]`。如果想接入多个shape，则可以这么写 `-s w h w2 h2` 注意shape不能太大 不要超过1024 
 
 ## 3. 使用bmodel
 在`model_path.py`中模型列表的最前面填上新模型的路径信息（应用默认加载该列表中的第一个模型）。
