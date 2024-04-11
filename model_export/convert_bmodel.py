@@ -232,7 +232,7 @@ def convert_sd15_vae_encoder():
             shape_str= "_".join(str(i) for i in shape)
             cmd = ["model_transform.py --model_name sdv15_ve --input_shape",str(vae_encoder_shape).replace(" ",""),f"--model_def vae_encoder.pt --mlir sd15_ve_{shape_str}.mlir"]
             _os_system(cmd)
-            cmd = [f"model_deploy.py --mlir sd15_ve_{shape_str}.mlir --quantize F32 --chip bm1684x --model sdv15_ve_{shape_str}.bmodel"]
+            cmd = [f"model_deploy.py --mlir sd15_ve_{shape_str}.mlir --quantize F16 --chip bm1684x --model sdv15_ve_{shape_str}.bmodel"]
             _os_system(cmd)
             keep_file.append( f"sdv15_ve_{shape_str}.bmodel" )
             cmd = remove_tmp_file(keep_file)
@@ -259,7 +259,7 @@ def convert_sd15_vae_decoder():
             shape_str= "_".join(str(i) for i in shape)
             cmd = ["model_transform.py --model_name sdv15_vd --input_shape",str(vae_decoder_shape).replace(" ",""),f"--model_def vae_decoder.pt --mlir sd15_vd_{shape_str}.mlir"]
             _os_system(cmd)
-            cmd = [f"model_deploy.py --mlir sd15_vd_{shape_str}.mlir --quantize F32 --chip bm1684x --model sdv15_vd_{shape_str}.bmodel"]
+            cmd = [f"model_deploy.py --mlir sd15_vd_{shape_str}.mlir --quantize F16 --chip bm1684x --model sdv15_vd_{shape_str}.bmodel"]
             _os_system(cmd)
             keep_file.append( f"sdv15_vd_{shape_str}.bmodel" )
             cmd = remove_tmp_file(keep_file)
