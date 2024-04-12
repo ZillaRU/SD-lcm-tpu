@@ -13,7 +13,12 @@ MAX_CMD_GROUP_NUM = 64
 MAX_STAGE_NUM     = 64
 
 #so_path = ctypes.CDLL('/usr/local/untool/lib/libuntpu.so')
-so_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'libuntpu.so'))
+# judge current os is arm or x86
+so_path = None
+if os.uname().machine == 'aarch64':
+    so_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'libuntpu_arm.so'))
+elif os.uname().machine == 'x86_64':
+    so_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'libuntpu.so'))
 lib     = ctypes.CDLL(so_path)
 int_point = ctypes.POINTER(ctypes.c_int)
 int_      = ctypes.c_int

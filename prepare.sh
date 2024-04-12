@@ -7,8 +7,8 @@ if [ ! -d "./models/basic" ]; then
     mkdir models/basic
 fi
 if [ ! -d "./models/controlnet" ]; then
-    mkdir models/controlnet
+    mkdir models/controlnet && python3 -m dfss --url=open@sophgo.com:/aigc/sd/canny_multize.bmodel && mv canny_multize.bmodel models/controlnet 
 fi
 if [ ! -d "./models/basic/awportrait" ]; then
-    python3 -m dfss --url=open@sophgo.com:/aigc/awportrait_lcm_models.zip && unzip awportrait_lcm_models.zip && rm -rf awportrait_lcm_models.zip && mv awportrait_lcm_models awportrait && mv awportrait models/basic/
+    python3 -m dfss --url=open@sophgo.com:/aigc/sd/awportrait.tgz && tar xzvf awportrait.tgz && rm awportrait.tgz && mv awportrait models/basic/
 fi

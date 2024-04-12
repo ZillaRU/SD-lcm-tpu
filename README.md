@@ -17,7 +17,7 @@
 
 1. **建立模型目录，下载默认模型并安装依赖**：在终端中运行 `bash prepare.sh`。
 2. **运行项目**：在终端中运行 `bash run.sh`
-3. **访问界面**：在浏览器中打开 `http://192.168.150.1:8999`（默认端口为 8999，如果端口被占用，Gradio 会自动选择一个可用端口）。
+3. **访问界面**：在浏览器中打开 `http://ip:8999`（默认端口为 8999，如果端口被占用，Gradio 会自动选择一个可用端口）。
 4. **输入文本**：在文本框中输入你的描述；或者同时给出描述和参考图片。
 5. **调整参数**：使用滑块调整去噪强度，输入一个自定义的随机种子（可选）。
 6. **生成图像**：点击“生成”按钮，系统将根据你的输入生成图像。
@@ -27,3 +27,19 @@ C站等平台有大量优秀的SD1.5模型，参考`model_export`文件夹中的
 
 ## 注意事项
 - 如果你遇到`GradioUnusedKwargWarning`等问题，请检查你的 Gradio 版本是否为最新。
+- 若出现生成图片为黑图，可能是电压问题。
+- 测试中部分随机数下出图效果不佳，为偶发问题，排查中。
+
+
+## changes 
+0402: support controlnet and x86 platform
+
+## TODO 
+0. 更便捷的一键转换脚本，带有图形化界面 TT ~~4.8~~ 4.11 over (图形化界面目前暂不release)
+1. 更方便的lora切换 TT ~~4.12~~ 4.15
+2. 更多的controlnet TT ~~4.12~~ 4.15
+3. controlnet和sd的权重做融合 未知
+4. cfg & no cfg 在各个scheduler上验证 TT 4.3 over  
+5. 更多的例子  
+6. controlnet : my prompt is more important | controlnet is more important  ~~4.12~~ 4.15
+

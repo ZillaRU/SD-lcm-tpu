@@ -812,13 +812,19 @@ def sample_dpmpp_2m_sde(model, x, sigmas, extra_args=None, callback=None, disabl
         h_last = h
     return x
 
-# sample_dpmpp_2m_sde -> model -> denoised  这里面的extra_args特别重要，不然会出很多bug
+
 def model_runner( discreteEpsDDPMDenoiser, guidance_scale, x, sigmas, mask=None, using_paint=False,  **extra_args):
-    sigmas = torch.tensor([sigmas, sigmas])
-    x = torch.cat([x, x], dim=0)
-    output = discreteEpsDDPMDenoiser(x, sigmas, **extra_args)# TODO 这一个是最麻烦的 搞定完这个就可以了
+    output = None
+    if guidance_scale > 1.0:
+        sigmas = torch.tensor([sigmas, sigmas])
+        x = torch.cat([x, x], dim=0)
+        # must get two batch for accelerate
+        output = discreteEpsDDPMDenoiser(x, sigmas, **extra_args)
+        denoise = output[0] + guidance_scale * (output[1] - output[0])
+    else:
+        output = discreteEpsDDPMDenoiser(x, sigmas, **extra_args)
+        denoise = output[0]
     init_latents_proper = extra_args['init_latents_proper']
-    denoise = output[0] + guidance_scale * (output[1] - output[0])
     if using_paint:
         denoise = ((torch.tensor(init_latents_proper[0] * mask)) + (denoise * torch.tensor(1 - mask)))
     return denoise 
