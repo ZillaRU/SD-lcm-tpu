@@ -18,12 +18,17 @@ logging.getLogger("diffusers").setLevel(logging.ERROR)
 def get_time_str():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
 
+def none_or_str(value):
+    if value.lower() == "none":
+        return None
+    return value
+
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 parser = argparse.ArgumentParser()
-parser.add_argument('-u', '--unet_safetensors_path', type=str, default= None)
-parser.add_argument('-c', '--controlnet_path',       type=str, default= None) # should be safetensors 
-parser.add_argument('-l', '--lora_path',             type=str, default= None)
+parser.add_argument('-u', '--unet_safetensors_path', type=none_or_str, default= None)
+parser.add_argument('-c', '--controlnet_path',       type=none_or_str, default= None) # should be safetensors
+parser.add_argument('-l', '--lora_path',             type=none_or_str, default= None)
 parser.add_argument('-cm', '--controlnet_merge',     type=bool, default= False, help="merge unet into controlnet with the former: \n "+
                                                             "new_controlnet = controlnet_weight - sd_base_encoder_weight + cur_unet_encoder_weight")
 parser.add_argument("-b", "--batch",                 type=int, default=1)

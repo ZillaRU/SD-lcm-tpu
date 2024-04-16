@@ -5,3 +5,8 @@ omegaconf
 transformers
 accelerate
 gradio
+opencv-python
+onnx
+onnxruntime
+plotly
+onnxsim
