@@ -17,32 +17,32 @@ class GrConvertorPtOnnx():
             debug=debug
         )
 
-    def init_convertor_wapper(self):
+    def init_convertor_wrapper(self):
         # gr.Info("Intting Convertor")
         self.convertor.init_convertor()
         return "Initialized Convertor success"
 
-    def init_pipe_wapper(self):
+    def init_pipe_wrapper(self):
         # gr.Info("Initting Pipe")
         self.convertor.init_pipe()
         return "Initialized Pipe success"
 
-    def run_controlnet_wapper(self):
+    def run_controlnet_wrapper(self):
         gr.Info("Running Controlnet")
         self.convertor.run_controlnet()
         return "Run controlnet success"
 
-    def run_unet_wapper(self):
+    def run_unet_wrapper(self):
         gr.Info("Running Unet")
         self.convertor.run_unet()
         return "Run Unet success"
 
-    def run_text_encoder_wapper(self):
+    def run_text_encoder_wrapper(self):
         gr.Info("Running Text Encoder")
         self.convertor.run_text_encoder()
         return "Run Text Encoder success"
 
-    def run_vae_wapper(self):
+    def run_vae_wrapper(self):
         gr.Info("Running VAE")
         self.convertor.run_vae()
         return "Run VAE success"
@@ -103,12 +103,12 @@ def run_back_1(unet_path, controlnet_path=None, lora_path=None, dk_unet_path=Non
         output_name=output_name,
         debug=debug
     )
-    fn_list = [gr_convertor.init_convertor_wapper,
-               gr_convertor.init_pipe_wapper,
-               gr_convertor.run_controlnet_wapper,
-               gr_convertor.run_unet_wapper,
-               gr_convertor.run_text_encoder_wapper,
-               gr_convertor.run_vae_wapper]
+    fn_list = [gr_convertor.init_convertor_wrapper,
+               gr_convertor.init_pipe_wrapper,
+               gr_convertor.run_controlnet_wrapper,
+               gr_convertor.run_unet_wrapper,
+               gr_convertor.run_text_encoder_wrapper,
+               gr_convertor.run_vae_wrapper]
     try:
         for i in progress.tqdm(range(6)):
             # time.sleep(0.5)
@@ -133,28 +133,28 @@ class GrConvertorBmodel():
             output_bmodel=output_bmodel
         )
 
-    def convert_sd15_unet_wapper(self):
+    def convert_sd15_unet_wrapper(self):
         gr.Info("Converting Unet to Bmodel")
         self.convertor.convert_sd15_unet()
 
-    def convert_sd15_controlnet_wapper(self):
+    def convert_sd15_controlnet_wrapper(self):
         # gr.Info()
         self.convertor.convert_sd15_controlnet()
 
 
-    def convert_sd15_text_encoder_wapper(self):
+    def convert_sd15_text_encoder_wrapper(self):
         gr.Info("Converting Text Encoder to Bmodel")
         self.convertor.convert_sd15_text_encoder()
 
-    def convert_sd15_vae_encoder_wapper(self):
+    def convert_sd15_vae_encoder_wrapper(self):
         gr.Info("Converting VAE Encoder to Bmodel")
         self.convertor.convert_sd15_vae_encoder()
 
-    def convert_sd15_vae_decoder_wapper(self):
+    def convert_sd15_vae_decoder_wrapper(self):
         gr.Info("Converting VAE Decoder to Bmodel")
         self.convertor.convert_sd15_vae_decoder()
 
-    def move_bmodels_into_folder_wapper(self):
+    def move_bmodels_into_folder_wrapper(self):
         self.convertor.move_bmodels_into_folder()
         gr.Info("Convert Bmodels Finish")
 
@@ -164,12 +164,12 @@ def run_back_2(shape_h, shape_w, version, path, batch, output_bmodel="", progres
     progress(0, desc="Starting...")
     gr_convertor = GrConvertorBmodel(shape_lists, version, path, batch, output_bmodel)
 
-    fn_list = [gr_convertor.convert_sd15_unet_wapper,
-               gr_convertor.convert_sd15_controlnet_wapper,
-               gr_convertor.convert_sd15_text_encoder_wapper,
-               gr_convertor.convert_sd15_vae_encoder_wapper,
-               gr_convertor.convert_sd15_vae_decoder_wapper,
-               gr_convertor.move_bmodels_into_folder_wapper]
+    fn_list = [gr_convertor.convert_sd15_unet_wrapper,
+               gr_convertor.convert_sd15_controlnet_wrapper,
+               gr_convertor.convert_sd15_text_encoder_wrapper,
+               gr_convertor.convert_sd15_vae_encoder_wrapper,
+               gr_convertor.convert_sd15_vae_decoder_wrapper,
+               gr_convertor.move_bmodels_into_folder_wrapper]
 
     try:
         for i in progress.tqdm(range(6)):
