@@ -36,10 +36,10 @@ C站等平台有大量优秀的SD1.5模型，参考`model_export`文件夹中的
 
 ## TODO 
 0. 更便捷的一键转换脚本，带有图形化界面 TT ~~4.8~~ 4.11 over (图形化界面目前暂不release)
-1. 更方便的lora切换 TT ~~4.12~~ 4.15
-2. 更多的controlnet TT ~~4.12~~ 4.15
+1. 更方便的lora切换 TT ~~4.12~~ 4月底
+2. 更多的controlnet TT ~~4.12~~ 4月底
 3. controlnet和sd的权重做融合 未知
 4. cfg & no cfg 在各个scheduler上验证 TT 4.3 over  
 5. 更多的例子  
-6. controlnet : my prompt is more important | controlnet is more important  ~~4.12~~ 4.15
+6. controlnet : my prompt is more important | controlnet is more important  ~~4.12~~ 4月底
 
