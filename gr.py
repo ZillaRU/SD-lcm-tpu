@@ -163,7 +163,7 @@ if __name__ == '__main__':
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="seed")
                     crop = gr.Radio(["1:1", "3:4"], label="Crop", type="index", value="1:1")
-                    scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0])
+                    scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=False)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
                                               components=[input_content, upload_image, seed_number, denoise,

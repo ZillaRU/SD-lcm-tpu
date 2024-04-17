@@ -1,6 +1,7 @@
 import gradio as gr
 import time
 from ConvertorPtOnnx import ConvertorPtOnnx
+from ConvertorBmodel import ConvertorBmodel
 import os
 
 class GrConvertorPtOnnx():
@@ -53,7 +54,7 @@ def preprocess(unet_path, dk_unet_path, unet_url, controlnet_path, dk_controlnet
         gr.Info("Use Upload Unet safetensor")
     elif unet_path is None and dk_unet_path is not None:
         gr.Info("Use docker Unet safetensor")
-        unet_path = dk_unet_path[0]
+        unet_path = dk_unet_path
     else:
         gr.Warning("Please Upload or Select a Unet safetensor file")
         check = False
@@ -76,8 +77,8 @@ def preprocess(unet_path, dk_unet_path, unet_url, controlnet_path, dk_controlnet
 
 
 
-def run_back(unet_path, controlnet_path=None, lora_path=None, dk_unet_path=None, dk_controlnet_path=None, dk_lora_path=None, unet_url=None, controlnet_url=None,
-             lora_url=None, batch=None, version=None, merge=None, output_name=None, debug=None, info_window=None, progress=gr.Progress()):
+def run_back_1(unet_path, controlnet_path=None, lora_path=None, dk_unet_path=None, dk_controlnet_path=None, dk_lora_path=None, unet_url=None, controlnet_url=None,
+             lora_url=None, batch=None, version=None, merge=None, output_name=None, debug=None, progress=gr.Progress()):
     # print(output_name)
     progress(0, desc="Starting...")
     # print(unet_path)
@@ -91,7 +92,7 @@ def run_back(unet_path, controlnet_path=None, lora_path=None, dk_unet_path=None,
     if not check:
         gr.Warning("Please Upload or Select a correct file")
         return "fuck your mm"
-    print(output_name)
+    # print(output_name)
     gr_convertor = GrConvertorPtOnnx(
         unet_path=unet_path,
         controlnet_path=controlnet_path,
@@ -113,8 +114,79 @@ def run_back(unet_path, controlnet_path=None, lora_path=None, dk_unet_path=None,
             # time.sleep(0.5)
             fn_list[i]()
 
-        return "Convert to Pt/Onnx Success, please check {}".format(output_name)
+        return "Convert to Pt/Onnx Success, please check {}".format(gr_convertor.convertor.output_name)
     except Exception as e:
         print(e)
-        gr.Warning(e)
+        gr.Warning("Error check the details in terminal")
         return "Convert to Pt/Onnx Failed, Please check and retry"
+
+
+class GrConvertorBmodel():
+    def __init__(self, shape_lists, version, path, batch, output_bmodel):
+        print(path)
+
+        self.convertor = ConvertorBmodel(
+            shape_lists=shape_lists,
+            version=version,
+            path=path,
+            batch=batch,
+            output_bmodel=output_bmodel
+        )
+
+    def convert_sd15_unet_wapper(self):
+        gr.Info("Converting Unet to Bmodel")
+        self.convertor.convert_sd15_unet()
+
+    def convert_sd15_controlnet_wapper(self):
+        # gr.Info()
+        self.convertor.convert_sd15_controlnet()
+
+
+    def convert_sd15_text_encoder_wapper(self):
+        gr.Info("Converting Text Encoder to Bmodel")
+        self.convertor.convert_sd15_text_encoder()
+
+    def convert_sd15_vae_encoder_wapper(self):
+        gr.Info("Converting VAE Encoder to Bmodel")
+        self.convertor.convert_sd15_vae_encoder()
+
+    def convert_sd15_vae_decoder_wapper(self):
+        gr.Info("Converting VAE Decoder to Bmodel")
+        self.convertor.convert_sd15_vae_decoder()
+
+    def move_bmodels_into_folder_wapper(self):
+        self.convertor.move_bmodels_into_folder()
+        gr.Info("Convert Bmodels Finish")
+
+
+def run_back_2(shape_h, shape_w, version, path, batch, output_bmodel="", progress=gr.Progress()):
+    shape_lists = [[shape_h, shape_w]]
+    progress(0, desc="Starting...")
+    gr_convertor = GrConvertorBmodel(shape_lists, version, path, batch, output_bmodel)
+
+    fn_list = [gr_convertor.convert_sd15_unet_wapper,
+               gr_convertor.convert_sd15_controlnet_wapper,
+               gr_convertor.convert_sd15_text_encoder_wapper,
+               gr_convertor.convert_sd15_vae_encoder_wapper,
+               gr_convertor.convert_sd15_vae_decoder_wapper,
+               gr_convertor.move_bmodels_into_folder_wapper]
+
+    try:
+        for i in progress.tqdm(range(6)):
+            fn_list[i]()
+
+        return "Convert to Bmodels Success, please check {}".format(gr_convertor.convertor.output_bmodel)
+    except Exception as e:
+        print(e)
+        gr.Warning("Error check the details in terminal")
+        return "Convert to Bmodels Failed, Please check and retry"
+
+
+
+
+
+
+
+
+
+

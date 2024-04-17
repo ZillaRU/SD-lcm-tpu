@@ -24,6 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('-debug', '--debug_log', type=bool, default=False)
 
     args = parser.parse_args()
+    print(args)
 
     convertor = ConvertorPtOnnx(
         unet_path=args.unet_safetensors_path,
@@ -47,4 +48,5 @@ if __name__ == '__main__':
         log.info(f"all done")
 
     cli_run()
+    print("check the folder in {}".format(convertor.output_name))
 

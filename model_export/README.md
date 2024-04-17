@@ -5,7 +5,7 @@
 ## 环境配置
 ```sh
 docker pull sophgo/tpuc_dev:latest
-docker run --privileged --name myname -v $PWD:/workspace -it sophgo/tpuc_dev:latest`
+docker run --privileged --name myname -p 8088:7860 -v $PWD:/workspace -it sophgo/tpuc_dev:latest`
 ```
 进入镜像后  
 
@@ -57,6 +57,29 @@ python3 convert_bmodel.py -n xxxxx/name -o xxxxx -s 512 512 -b 1 -v sd15
 
 ## 3. 使用bmodel
 在`model_path.py`中模型列表的最前面填上新模型的路径信息（应用默认加载该列表中的第一个模型）。
+
+## 4. 交互式转换 UI Support ✅
+启动模型转换器服务
+```bash
+python3 gr_docker.py
+```
+
+浏览器访问运行此 docker 容器的 8088 端口
+
+- 步骤1：转换 safetensor 至 onnx/pt 格式模型
+
+   ⭐ 支持浏览器上传
+   
+   🌟 选择镜像内文件
+   
+   ❌ URL 自动下载 [筹备中]
+
+
+- 步骤2：转换 onnx/pt 格式模型至 bmodel 
+
+   刷新页面
+
+   选择步骤 1 中生成的**文件夹路经**，onnx/pt 模型的父目录
 
 ## 常见问题
 1. 转换bmodel后，出图明显异常。

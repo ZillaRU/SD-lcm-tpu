@@ -8,13 +8,12 @@ description = """
 
 ## Two Steps:
 - convert safetensor into pt/onnx. 
-- convert pt/onnx into bmodel!
+- convert pt/onnx into bmodel !
 
-You can choose upload models or download by URL
+You can choose upload models or select in docker container
 """
 import gradio as gr
 
-gr_convertor = None
 
 if not os.path.exists('./tmp'):
     os.makedirs('tmp', exist_ok=True)
@@ -22,14 +21,6 @@ if not os.path.exists('./tmp'):
 
 def get_time_str():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
-
-
-# if not os.path.exists('./url_model'):
-#     os.makedirs('url_model', exist_ok=True)
-
-# controller = ConvertorController()
-
-
 
 
 if __name__ == '__main__':
@@ -45,7 +36,7 @@ if __name__ == '__main__':
                                                         label='unet safetensors')
 
                         with gr.Tab("Docker"):
-                            docker_unet_safetensors_path = gr.FileExplorer(root_dir='./', label="unet safetensors path")
+                            docker_unet_safetensors_path = gr.FileExplorer(glob='*.safetensors', root_dir='./', label="unet safetensors path", file_count='single')
 
                         with gr.Tab("URL"):
                             unet_safetensors_url = gr.Textbox(label="Unet Safetensors URL", interactive=False)
@@ -75,9 +66,9 @@ if __name__ == '__main__':
                         # controlnet_url = gr.Textbox(label="Controlnet URL", interactive=False)
                         # lora_url = gr.Textbox(label="Lora URL", interactive=False)
                         with gr.Row():
-                            batch_num = gr.Number(value=1, label="batch", min_width=20)
+                            batch_num = gr.Number(value=1, label="batch", min_width=60)
                             version = gr.Dropdown(choices=['sd15', 'sd21', 'SDXL'], type='value', label="version",
-                                                  value='sd15', interactive=True, min_width=160)
+                                                  value='sd15', interactive=True, min_width=100)
                             with gr.Column():
                                 controlnet_merge_bool = gr.Checkbox(value=False, label='controlnet merge', min_width=20,
                                                                     info="merge unet into controlnet with the former")
@@ -99,7 +90,7 @@ if __name__ == '__main__':
         with gr.Tab("Convert to bmodel"):
             with gr.Row():
                 with gr.Column():
-                    model_path = gr.FileExplorer(root_dir='./tmp', label="model path")
+                    model_path = gr.FileExplorer(root_dir='./tmp', label="model path", file_count='single')
                     b_info_window = gr.Textbox(label="Progress info", lines=7)
 
                 with gr.Column():
@@ -114,10 +105,10 @@ if __name__ == '__main__':
                     b_clear_all_bt = gr.ClearButton(value="Clear All",
                                                     components=[shape_h,
                                                                 shape_w,
-                                                                info_window])
+                                                                b_info_window])
                     step_2_bt = gr.Button(value="Convert to bmodel", variant='primary')
 
-        step_1_bt.click(run_back, [unet_safetensors_path,
+        step_1_bt.click(run_back_1, [unet_safetensors_path,
                                    controlnet_path,
                                    lora_path,
                                    docker_unet_safetensors_path,
@@ -131,9 +122,9 @@ if __name__ == '__main__':
                                    controlnet_merge_bool,
                                    output_name,
                                    debug_bool,
-                                   info_window], [info_window])
-        # step_1_bt.click(change_text, [info_window], )
-        step_2_bt.click(convert_bmodel_wapper, [shape_h, shape_w, b_version, model_path, b_batch_num], [info_window])
+                                   ], [info_window])
+
+        step_2_bt.click(run_back_2, [shape_h, shape_w, b_version, model_path, b_batch_num], [b_info_window])
 
     demo.queue(max_size=2)
     demo.launch(debug=False, show_api=True, share=False, server_name="0.0.0.0")
