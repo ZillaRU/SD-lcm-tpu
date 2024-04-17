@@ -32,7 +32,7 @@ if args.output_bmodel == "":
     args.output_bmodel = "./bmodel/" + args.path.split("/")[-1]
 print(args)
 assert args.sdversion in ["sd15"] , "only support sd15"
-path = f"{args.path}_{args.sdversion}"
+path = args.path
 
 def _os_system_log(cmd_str):
     log.info("[Running]: %s", cmd_str)

@@ -4,3 +4,9 @@ diffusers==0.24.0
 omegaconf
 transformers
 accelerate
+gradio
+opencv-python
+onnx
+onnxruntime
+plotly
+onnxsim

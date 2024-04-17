@@ -13,7 +13,7 @@ DEVICE_ID = 0
 BASENAME = list(model_path.keys())
 SIZE = [("512:512", 512), ("768:768", 768)]
 print(BASENAME)
-scheduler = "LCM"
+scheduler = ["LCM", "DDIM"]
 
 
 def seed_torch(seed=1029):
@@ -30,7 +30,7 @@ class ModelManager():
         self.current_model_name = None
         self.pipe = None
         self.size = None
-        self.change_model(BASENAME[0], size=512)
+        self.change_model(BASENAME[0], size=512, scheduler=scheduler[0])
 
     def pre_check(self, model_select, size, check_type=None):
         check_pass = True
@@ -63,7 +63,7 @@ class ModelManager():
 
         return check_pass
 
-    def change_model(self, model_select, size, progress=gr.Progress()):
+    def change_model(self, model_select, size, scheduler, progress=gr.Progress()):
         if self.pipe is None:
             self.pre_check(model_select, size, check_type=["te", "unet", "vae"])
             self.pipe = StableDiffusionPipeline(
@@ -122,7 +122,7 @@ class ModelManager():
             gr.Info("{} LoRa {}:{} have been loaded".format(model_select, size, size))
             return self.current_model_name, self.size
 
-    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, crop=None):
+    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, crop=None, scheduler=None):
         img_pil = self.pipe(
             init_image=image,
             prompt=text,
@@ -163,6 +163,7 @@ if __name__ == '__main__':
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="seed")
                     crop = gr.Radio(["1:1", "3:4"], label="Crop", type="index", value="1:1")
+                    scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=False)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
                                               components=[input_content, upload_image, seed_number, denoise,
@@ -176,11 +177,11 @@ if __name__ == '__main__':
                 out_img = gr.Image(label="Output")
 
         clear_bt.add(components=[out_img])
-        change_bt.click(model_manager.change_model, [model_select, size], [model_select, size])
+        change_bt.click(model_manager.change_model, [model_select, size, scheduler_type], [model_select, size])
         input_content.submit(model_manager.generate_image_from_text,
                              [input_content, upload_image, num_step, denoise, seed_number], [out_img])
         submit_bt.click(model_manager.generate_image_from_text,
-                        [input_content, upload_image, num_step, denoise, seed_number, crop], [out_img])
+                        [input_content, upload_image, num_step, denoise, seed_number, crop, scheduler_type], [out_img])
 
     # 运行 Gradio 应用
     demo.queue(max_size=10)
