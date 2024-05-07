@@ -25,9 +25,11 @@ bash prepare.sh
 ```sh
 python3 export_from_safetensor.py -u xxxxx/model.safetensor -l xxxx/lora.safetensor -c xxxx/controlnet.safetensor -b 1 -o xxxxx/name 
 ```
-这里需要考虑到这一点：如果没有controlnet可以不传-c参数，如果没有lora可以不传-l参数 
-模型最后保存到-o指定的目录里面 
-目录里面应该会变成：  
+这里需要考虑到：如果没有controlnet可以不传-c参数，如果没有lora可以不传-l参数。
+
+⚠️如果需要使用LCM减少生成高质量图像所需扩散次数加快出图，要指定 -l 参数（-l latent-consistency/lcm-lora-sdv1-5），否则生成的模型大约需要 20 step才能同等质量的图像。
+
+模型最后保存到-o指定的目录里面。目录里面应该会变成：  
 ```
 .
 ├── text_encoder
@@ -79,7 +81,7 @@ python3 gr_docker.py
 
    刷新页面
 
-   选择步骤 1 中生成的**文件夹路经**，onnx/pt 模型的父目录
+   选择步骤 1 中生成的**文件夹路径**，onnx/pt 模型的父目录
 
 ## 常见问题
 1. 转换bmodel后，出图明显异常。
