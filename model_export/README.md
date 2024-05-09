@@ -74,7 +74,7 @@ python3 gr_docker.py
    
    🌟 选择镜像内文件
    
-   ❌ URL 自动下载 [筹备中]
+   🌟 URL 自动下载 
 
 
 - 步骤2：转换 onnx/pt 格式模型至 bmodel 
