@@ -6,12 +6,13 @@ import os
 import time
 import random
 import torch
-# from sd.untool import delete_runtime, free_runtime
 from model_path import model_path
 
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
-SIZE = [("512:512", 512), ("768:768", 768)]
+SIZE = {"0": [512, 512],
+        "1": [768, 512],
+        "2": [512, 768]}
 print(BASENAME)
 scheduler = ["LCM", "DDIM"]
 
@@ -29,15 +30,21 @@ class ModelManager():
     def __init__(self):
         self.current_model_name = None
         self.pipe = None
-        self.size = None
-        self.change_model(BASENAME[0], size=512, scheduler=scheduler[0])
+        self.change_model(BASENAME[0], scheduler=scheduler[0])
 
-    def pre_check(self, model_select, size, check_type=None):
+    def pre_check_latent_size(self, latent_size):
+        latent_size_str = "{}x{}".format(SIZE[str(latent_size)][0], SIZE[str(latent_size)][1])
+        support_status = model_path[self.current_model_name]["latent_shape"][latent_size_str]
+        if support_status == "True":
+            return True
+        else:
+            return False
+
+    def pre_check(self, model_select, check_type=None):
         check_pass = True
         model_select_path = os.path.join('models', 'basic', model_select)
         te_path = os.path.join(model_select_path, model_path[model_select]['encoder'])
-        unet_512_path = os.path.join(model_select_path, model_path[model_select]['unet']['512'])
-        unet_768_path = os.path.join(model_select_path, model_path[model_select]['unet']['768'])
+        unet_path = os.path.join(model_select_path, model_path[model_select]['unet'])
         vae_de_path = os.path.join(model_select_path, model_path[model_select]['vae_decoder'])
         vae_en_path = os.path.join(model_select_path, model_path[model_select]['vae_encoder'])
 
@@ -47,14 +54,9 @@ class ModelManager():
                 check_pass = False
                 # return False
         if "unet" in check_type:
-            if size == 512:
-                if not os.path.isfile(unet_512_path):
-                    gr.Warning("No {} unet_512 please download first".format(model_select))
-                    check_pass = False
-            else:
-                if not os.path.isfile(unet_768_path):
-                    gr.Warning("No {} unet_768 please download first".format(model_select))
-                    check_pass = False
+            if not os.path.isfile(unet_path):
+                gr.Warning("No {} unet please download first".format(model_select))
+                check_pass = False
 
         if "vae" in check_type:
             if not os.path.exists(vae_en_path) or not os.path.exists(vae_de_path):
@@ -63,81 +65,55 @@ class ModelManager():
 
         return check_pass
 
-    def change_model(self, model_select, size, scheduler, progress=gr.Progress()):
+    def change_model(self, model_select, scheduler=None, progress=gr.Progress()):
         if self.pipe is None:
-            self.pre_check(model_select, size, check_type=["te", "unet", "vae"])
+            self.pre_check(model_select, check_type=["te", "unet", "vae"])
             self.pipe = StableDiffusionPipeline(
                 basic_model=model_select,
                 scheduler=scheduler,
             )
-            self.pipe.set_height_width(size, size)
             self.current_model_name = model_select
-            self.size = size
             return
 
-        if self.current_model_name != model_select or self.size != size:
-            if self.current_model_name != model_select:
-                # change both te, unet, vae
-                if self.pre_check(model_select, size, check_type=["te", "unet", "vae"]):
-                    try:
-                        gr.Info("Loading {} with {}:{} ...".format(model_select, size, size))
-                        progress(0.4, desc="Loading....")
-                        self.pipe.change_lora(model_select, size)
-                        progress(0.8, desc="Loading....")
-                        self.pipe.set_height_width(size, size)
-                        progress(1, desc="Loading....")
-                        gr.Info("Success load {} LoRa {}:{}".format(model_select, size, size))
-                        self.current_model_name = model_select
-                        self.size = size
-                        return model_select, size
-                    except Exception as e:
-                        print(e)
-                        gr.Error("{}".format(e))
-                        return self.current_model_name, self.size
-                else:
-                    return self.current_model_name, self.size
-
-
-            elif self.current_model_name == model_select and self.size != size:
-                # only change the unet
-                if self.pre_check(model_select, size, check_type=["unet"]):
-                    try:
-                        gr.Info("Loading {} unet with {}:{} ...".format(model_select, size, size))
-                        progress(0.6, desc="Loading....")
-                        self.pipe.change_unet(model_select, size)
-                        progress(0.8, desc="Loading....")
-                        self.pipe.set_height_width(size, size)
-                        progress(1, desc="Loading....")
-                        gr.Info("Success load {} LoRa {}:{}".format(model_select, size, size))
-                        self.size = size
-                        return model_select, size
-                    except Exception as e:
-                        print(e)
-                        gr.Error("{}".format(e))
-                        return self.current_model_name, self.size
-                else:
-                    return self.current_model_name, self.size
+        if self.current_model_name != model_select:
+            # change both te, unet, vae
+            if self.pre_check(model_select, check_type=["te", "unet", "vae"]):
+                try:
+                    gr.Info("Loading {} ...".format(model_select))
+                    progress(0.4, desc="Loading....")
+                    self.pipe.change_lora(model_select)
+                    progress(0.8, desc="Loading....")
+                    gr.Info("Success load {} LoRa".format(model_select))
+                    self.current_model_name = model_select
+                    return model_select
+                except Exception as e:
+                    print(e)
+                    gr.Error("{}".format(e))
+                    return self.current_model_name
+            else:
+                return self.current_model_name
 
         else:
-            gr.Info("{} LoRa {}:{} have been loaded".format(model_select, size, size))
+            gr.Info("{} LoRa have been loaded".format(model_select))
             return self.current_model_name, self.size
 
-    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, crop=None, scheduler=None):
-        img_pil = self.pipe(
-            init_image=image,
-            prompt=text,
-            negative_prompt="low resolution",
-            num_inference_steps=step,
-            strength=strength,
-            scheduler=scheduler,
-            guidance_scale=0,
-            seeds=[random.randint(0, 1000000) if seed is None else seed]
-        )
-        if crop == 1:
-            h, w = img_pil.size
-            print(h, w)
-            img_pil = img_pil.crop((1/8*w, 0, 7/8*w, h))
-        return img_pil
+    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None):
+        if self.pre_check_latent_size(latent_size):
+            self.pipe.set_height_width(SIZE[str(latent_size)][0], SIZE[str(latent_size)][1])
+            img_pil = self.pipe(
+                init_image=image,
+                prompt=text,
+                negative_prompt="low resolution",
+                num_inference_steps=step,
+                strength=strength,
+                scheduler=scheduler,
+                guidance_scale=0,
+                seeds=[random.randint(0, 1000000) if seed is None else seed]
+            )
+
+            return img_pil
+        else:
+            gr.Info("{} do not support this size, please check model info".format(self.current_model_name))
 
 
 model_manager = ModelManager()
@@ -161,8 +137,8 @@ if __name__ == '__main__':
                     denoise = gr.Slider(minimum=0.2, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength",
                                         scale=1)
                 with gr.Row():
-                    seed_number = gr.Number(value=1, label="seed")
-                    crop = gr.Radio(["1:1", "3:4"], label="Crop", type="index", value="1:1")
+                    seed_number = gr.Number(value=1, label="Seed", min_width=50)
+                    latent_size = gr.Radio(["1:1", "3:4", "4:3"], label="Size", type="index", value="3:4", min_width=250)
                     scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=False)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
@@ -172,16 +148,16 @@ if __name__ == '__main__':
             with gr.Column():
                 with gr.Row():
                     model_select = gr.Dropdown(choices=BASENAME, value=BASENAME[0], label="Model", interactive=True)
-                    size = gr.Dropdown(choices=SIZE, value=512, label="Size", interactive=True)
+                    # size = gr.Dropdown(choices=SIZE, value=512, label="Size", interactive=True)
                     change_bt = gr.Button(value="Change", interactive=True)
                 out_img = gr.Image(label="Output")
 
         clear_bt.add(components=[out_img])
-        change_bt.click(model_manager.change_model, [model_select, size, scheduler_type], [model_select, size])
+        change_bt.click(model_manager.change_model, [model_select, scheduler_type], [model_select])
         input_content.submit(model_manager.generate_image_from_text,
-                             [input_content, upload_image, num_step, denoise, seed_number], [out_img])
+                             [input_content, upload_image, num_step, denoise, seed_number, latent_size, scheduler_type], [out_img])
         submit_bt.click(model_manager.generate_image_from_text,
-                        [input_content, upload_image, num_step, denoise, seed_number, crop, scheduler_type], [out_img])
+                        [input_content, upload_image, num_step, denoise, seed_number, latent_size, scheduler_type], [out_img])
 
     # 运行 Gradio 应用
     demo.queue(max_size=10)

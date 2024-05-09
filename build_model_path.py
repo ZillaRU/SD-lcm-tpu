@@ -1,13 +1,17 @@
 '''example
     "awportrait": {
-            "name": "",
-            "encoder": "",
-            "unet": {"512": "unet_2_1684x_F16.bmodel",
-                    "768": ""
-            },
-            "vae_decoder": "vae_decoder_multize.bmodel",
-            "vae_encoder": "vae_encoder_multize.bmodel"
-        },
+        "name": "awportrait",
+        "encoder": "te_f32.bmodel",
+        "unet": "unet_2_1684x_F16.bmodel",
+        "vae_decoder": "vae_decoder_multize.bmodel",
+        "vae_encoder": "vae_encoder_multize.bmodel",
+        "controlnet": "canny_multize",
+        "latent_shape": {
+            "512x512": True,
+            "768x512": True,
+            "512x768": False
+        }
+    },
 '''
 
 import json
@@ -24,11 +28,15 @@ def build_json():
         data[i] = {
             "name": i,
             "encoder": "sdv15_text.bmodel",
-            "unet": {"512": "sdv15_unet_multisize.bmodel",
-                     "768": ""
-                    },
+            "unet": "sdv15_unet_multisize.bmodel",
             "vae_decoder": "sdv15_vd_multisize.bmodel",
-            "vae_encoder": "sdv15_ve_multisize.bmodel"
+            "vae_encoder": "sdv15_ve_multisize.bmodel",
+            "controlnet": "canny_multize",
+            "latent_shape": {
+                "512x512": "True",
+                "768x512": "True",
+                "512x768": "False"
+            }
         }
 
     # print(data)

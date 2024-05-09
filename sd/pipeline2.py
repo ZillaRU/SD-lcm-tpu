@@ -85,7 +85,7 @@ class StableDiffusionPipeline:
         st_time = time.time()
         # unet_multize.bmodel
         self.unet_pure = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, model_path[basic_model]['unet']['512']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
+            basic_model, model_path[basic_model]['unet']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         # self.unet_pure.check_and_move_to_device()
         self.unet_pure.default_input()
         # self.unet_pure.default_input()
@@ -712,7 +712,7 @@ class StableDiffusionPipeline:
         self.vae_encoder.free_runtime()
         self.vae_decoder.free_runtime()
 
-    def change_lora(self, basic_model, size):
+    def change_lora(self, basic_model):
         self.free_tpu_runtime()
         self.basemodel_name = basic_model
 
@@ -725,8 +725,9 @@ class StableDiffusionPipeline:
         st_time = time.time()
         # unet_multize.bmodel
         self.unet_pure = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, model_path[basic_model]['unet'][str(size)]), device_id=self.device_id, pre_malloc=True, output_list=[0],
+            basic_model, model_path[basic_model]['unet']), device_id=self.device_id, pre_malloc=True, output_list=[0],
             sg=False)
+
         self.unet_pure.default_input()
         print("====================== Load UNET in ", time.time() - st_time)
 
