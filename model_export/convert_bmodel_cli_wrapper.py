@@ -14,9 +14,19 @@ if __name__ == '__main__':
 
     # print(type(args.shape_lists))
     # print(args.shape_lists)
+    shape_len = len(args.shape_lists)
+    if shape_len % 2 != 0:
+        print("Please input valid shape lists")
+        exit(1)
+    else:
+        # shape_num = int(shape_len / 2)
+        shape_lists = []
+        for i in range(0, shape_len, 2):
+            shape_lists.append([args.shape_lists[i], args.shape_lists[i+1]])
+        print(shape_lists)
 
     convertor = ConvertorBmodel(
-        shape_lists=[args.shape_lists],
+        shape_lists=shape_lists,
         version=args.sdversion,
         path=args.path,
         batch=args.batch,
