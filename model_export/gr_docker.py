@@ -39,7 +39,9 @@ if __name__ == '__main__':
                             docker_unet_safetensors_path = gr.FileExplorer(glob='*.safetensors', root_dir='./', label="unet safetensors path", file_count='single')
 
                         with gr.Tab("URL"):
-                            unet_safetensors_url = gr.Textbox(label="Unet Safetensors URL", interactive=False)
+                            with gr.Row():
+                                unet_safetensors_url = gr.Textbox(label="Unet Safetensors URL", info="Civital model Download URL", interactive=True)
+                                civital_token = gr.Textbox(label="Civital API Token", info="Config in Civital account", interactive=True)
                     with gr.Row():
                         with gr.Tab("Upload"):
                             controlnet_path = gr.File(file_types=['safetensors'], type='filepath', label='controlnet model')
@@ -83,7 +85,8 @@ if __name__ == '__main__':
                                                                   lora_url,
                                                                   controlnet_merge_bool,
                                                                   debug_bool,
-                                                                  info_window])
+                                                                  info_window,
+                                                                  civital_token])
                         step_1_bt = gr.Button(value="Convert to pt/onnx", variant='primary')
                         output_name = gr.Textbox(value=f"./tmp/{get_time_str()}", visible=False)
 
@@ -122,7 +125,7 @@ if __name__ == '__main__':
                                    controlnet_merge_bool,
                                    output_name,
                                    debug_bool,
-                                   ], [info_window])
+                                   civital_token], [info_window])
 
         step_2_bt.click(run_back_2, [shape_h, shape_w, b_version, model_path, b_batch_num], [b_info_window])
 

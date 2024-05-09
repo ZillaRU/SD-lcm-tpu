@@ -77,8 +77,8 @@ class ModelManager():
 
         if self.current_model_name != model_select or self.size != size:
             if self.current_model_name != model_select:
-                # change both te and unet
-                if self.pre_check(model_select, size, check_type=["te", "unet"]):
+                # change both te, unet, vae
+                if self.pre_check(model_select, size, check_type=["te", "unet", "vae"]):
                     try:
                         gr.Info("Loading {} with {}:{} ...".format(model_select, size, size))
                         progress(0.4, desc="Loading....")

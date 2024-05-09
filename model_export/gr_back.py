@@ -3,6 +3,9 @@ import time
 from ConvertorPtOnnx import ConvertorPtOnnx
 from ConvertorBmodel import ConvertorBmodel
 import os
+import requests
+import uuid
+import subprocess
 
 class GrConvertorPtOnnx():
     def __init__(self, unet_path, controlnet_path=None, lora_path=None, unet_url=None, controlnet_url=None, lora_url=None, batch=None, version=None, merge=None, output_name=None, debug=None):
@@ -48,13 +51,41 @@ class GrConvertorPtOnnx():
         return "Run VAE success"
 
 
-def preprocess(unet_path, dk_unet_path, unet_url, controlnet_path, dk_controlnet_path, controlnet_url, lora_path, dk_lora_path, lora_url):
+def civital_api_download(url, token):
+    if not os.path.exists('./URL_civital_models'):
+        os.makedirs('./URL_civital_models', exist_ok=True)
+    if token == None:
+        gr.Info("Please add your Civital API token")
+    else:
+        try:
+            gr.Info("Downloading model ...")
+            model_name = "{}.safetensors".format(uuid.uuid4())
+            cmd = "wget -O ./URL_civital_models/{} \"{}?&token={}\"".format(model_name, url, token)
+            print(cmd)
+            ret = subprocess.run(cmd, shell=True, check=True)
+            # print("Download {} successfully".format(original_model_name))
+            return "./URL_civital_models/{}".format(model_name)
+        except Exception as e:
+            print(e)
+            gr.Warning("Can not download the model, please check the Internet and URL")
+            return None
+
+
+
+def preprocess(unet_path, dk_unet_path, unet_url, controlnet_path, dk_controlnet_path, controlnet_url, lora_path, dk_lora_path, lora_url, token):
     check = True
     if unet_path is not None:
         gr.Info("Use Upload Unet safetensor")
     elif unet_path is None and dk_unet_path is not None:
         gr.Info("Use docker Unet safetensor")
         unet_path = dk_unet_path
+    elif unet_path is None and dk_unet_path is None and unet_url is not None:
+        gr.Info("Download the file via Internet")
+        path = civital_api_download(unet_url, token)
+        if path is not None:
+            unet_path = path
+        else:
+            check = False
     else:
         gr.Warning("Please Upload or Select a Unet safetensor file")
         check = False
@@ -78,7 +109,7 @@ def preprocess(unet_path, dk_unet_path, unet_url, controlnet_path, dk_controlnet
 
 
 def run_back_1(unet_path, controlnet_path=None, lora_path=None, dk_unet_path=None, dk_controlnet_path=None, dk_lora_path=None, unet_url=None, controlnet_url=None,
-             lora_url=None, batch=None, version=None, merge=None, output_name=None, debug=None, progress=gr.Progress()):
+             lora_url=None, batch=None, version=None, merge=None, output_name=None, debug=None, token=None, progress=gr.Progress()):
     # print(output_name)
     progress(0, desc="Starting...")
     # print(unet_path)
@@ -87,11 +118,11 @@ def run_back_1(unet_path, controlnet_path=None, lora_path=None, dk_unet_path=Non
 
     # print(type(lora_path), len(lora_path))
 
-    unet_path, controlnet_path, lora_path, check = preprocess(unet_path, dk_unet_path, unet_url, controlnet_path, dk_controlnet_path, controlnet_url, lora_path, dk_lora_path, lora_url)
+    unet_path, controlnet_path, lora_path, check = preprocess(unet_path, dk_unet_path, unet_url, controlnet_path, dk_controlnet_path, controlnet_url, lora_path, dk_lora_path, lora_url, token)
     # print(lora_path)
     if not check:
         gr.Warning("Please Upload or Select a correct file")
-        return "fuck your mm"
+        return "Please Upload or Select a correct file"
     # print(output_name)
     gr_convertor = GrConvertorPtOnnx(
         unet_path=unet_path,
