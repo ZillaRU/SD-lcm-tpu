@@ -40,8 +40,8 @@ def build_json():
         }
 
     # print(data)
-
-    print(json.dumps(data, ensure_ascii=False, indent=4))
+    dict_str = json.dumps(data, ensure_ascii=False, indent=4)
+    print("model_path = " + dict_str)
 
 
 build_json()
