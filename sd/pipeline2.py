@@ -709,6 +709,8 @@ class StableDiffusionPipeline:
     def free_tpu_runtime(self):
         self.text_encoder.free_runtime()
         self.unet_pure.free_runtime()
+        self.vae_encoder.free_runtime()
+        self.vae_decoder.free_runtime()
 
     def change_lora(self, basic_model, size):
         self.free_tpu_runtime()
@@ -729,6 +731,18 @@ class StableDiffusionPipeline:
         print("====================== Load UNET in ", time.time() - st_time)
 
         self.unet = self.unet_pure
+
+        self.vae_decoder = UntoolEngineOV("./models/basic/{}/{}".format(
+            basic_model, model_path[basic_model]['vae_decoder']), device_id=self.device_id, pre_malloc=True,
+            output_list=[0], sg=False)
+        print("====================== Load VAE DE in ", time.time() - st_time)
+
+        st_time = time.time()
+        self.vae_encoder = UntoolEngineOV("./models/basic/{}/{}".format(
+            basic_model, model_path[basic_model]['vae_encoder']), device_id=self.device_id, pre_malloc=True,
+            output_list=[0], sg=False)
+        print("====================== Load VAE EN in ", time.time() - st_time)
+
         print(self.text_encoder, self.unet, self.vae_decoder,
               self.vae_encoder, self.controlnet)
 
