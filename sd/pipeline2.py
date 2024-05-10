@@ -941,11 +941,9 @@ class StableDiffusionPipeline:
                 ).input_ids
                 uncond_embeddings = self.text_encoder(
                     {"tokens": np.array([tokens_uncond], dtype=np.int32)})[0]
-                text_embeddings = np.concatenate((uncond_embeddings, text_embeddings), axis=0)
-            
-            if guidance_scale <=1.0:
-                text_embeddings = text_embeddings
-        
+            text_embeddings = np.concatenate((uncond_embeddings, text_embeddings), axis=0)
+        if guidance_scale <=1.0:
+            text_embeddings = text_embeddings[1]
         # controlnet image prepare
         if self.controlnet_name is not None and len(self.controlnet_name)!=0 and controlnet_img is not None: # PIL Image
             controlnet_img = self.preprocess_controlnet_image(controlnet_img)
@@ -977,7 +975,7 @@ class StableDiffusionPipeline:
             mask = self._preprocess_mask(mask)
         else:
             mask = None
-        if scheduler not in ["DDIM","DPM Solver++", "LCM"] and not self.is_v2 or (self.is_v2 and scheduler in ['Euler', None]):
+        if scheduler not in ["DDIM","DPM Solver++", "LCM" ] and not self.is_v2 or (self.is_v2 and scheduler in ['Euler', None]):
             # run scheduler
             if scheduler is not None:
                 self.scheduler = scheduler
