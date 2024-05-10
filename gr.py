@@ -95,7 +95,7 @@ class ModelManager():
 
         else:
             gr.Info("{} LoRa have been loaded".format(model_select))
-            return self.current_model_name, self.size
+            return self.current_model_name
 
     def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None):
         if self.pre_check_latent_size(latent_size):
