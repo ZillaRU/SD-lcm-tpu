@@ -14,7 +14,7 @@ SIZE = {"0": [512, 512],
         "1": [768, 512],
         "2": [512, 768]}
 print(BASENAME)
-scheduler = ["LCM", "DDIM"]
+scheduler = ["LCM", "DDIM", "DPM Solver++"]
 
 
 def seed_torch(seed=1029):
@@ -139,7 +139,7 @@ if __name__ == '__main__':
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="Seed", min_width=50)
                     latent_size = gr.Radio(["1:1", "3:4", "4:3"], label="Size", type="index", value="3:4", min_width=250)
-                    scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=False)
+                    scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=True)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
                                               components=[input_content, upload_image, seed_number, denoise,
