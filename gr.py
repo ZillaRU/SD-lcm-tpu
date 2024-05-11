@@ -122,7 +122,7 @@ class ModelManager():
         if scheduler != self.current_scheduler and scheduler == "LCM":
             self.current_scheduler = scheduler
             return gr.Slider(minimum=3, maximum=10, step=1, value=4, label="Steps", scale=2)
-        elif scheduler != self.current_scheduler and self.current_scheduler == "LCM" and scheduler != "LCM":
+        elif scheduler != self.current_scheduler and self.current_scheduler == "LCM":
             self.current_scheduler = scheduler
             return gr.Slider(minimum=15, maximum=40, step=1, value=20, label="Steps", scale=2)
         else:
