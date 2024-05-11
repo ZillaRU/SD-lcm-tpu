@@ -7,7 +7,7 @@ import time
 import random
 import torch
 from model_path import model_path
-
+from sd.scheduler import samplers_k_diffusion
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
 SIZE = {"0": [512, 512],
@@ -15,6 +15,8 @@ SIZE = {"0": [512, 512],
         "2": [512, 768]}
 print(BASENAME)
 scheduler = ["LCM", "DDIM", "DPM Solver++"]
+for i in samplers_k_diffusion:
+    scheduler.append(i[0])
 
 
 def seed_torch(seed=1029):
@@ -30,6 +32,7 @@ class ModelManager():
     def __init__(self):
         self.current_model_name = None
         self.pipe = None
+        self.current_scheduler = scheduler[0]
         self.change_model(BASENAME[0], scheduler=scheduler[0])
 
     def pre_check_latent_size(self, latent_size):
@@ -115,8 +118,19 @@ class ModelManager():
         else:
             gr.Info("{} do not support this size, please check model info".format(self.current_model_name))
 
+    def update_slider(self, scheduler):
+        if scheduler != self.current_scheduler and scheduler == "LCM":
+            self.current_scheduler = scheduler
+            return gr.Slider(minimum=3, maximum=10, step=1, value=4, label="Steps", scale=2)
+        elif scheduler != self.current_scheduler and self.current_scheduler == "LCM" and scheduler != "LCM":
+            self.current_scheduler = scheduler
+            return gr.Slider(minimum=15, maximum=40, step=1, value=20, label="Steps", scale=2)
+        else:
+            return 20
+
 
 model_manager = ModelManager()
+
 
 description = """
 # Text-to-Image and Image-to-Image Generator
@@ -133,12 +147,12 @@ if __name__ == '__main__':
                 input_content = gr.Textbox(lines=1, label="Input content")
                 upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='pil', label="image")
                 with gr.Row():
-                    num_step = gr.Slider(minimum=3, maximum=20, value=4, step=1, label="Steps", scale=2)
+                    num_step = gr.Slider(minimum=3, maximum=10, value=4, step=1, label="Steps", scale=2)
                     denoise = gr.Slider(minimum=0.2, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength",
                                         scale=1)
                 with gr.Row():
-                    seed_number = gr.Number(value=1, label="Seed", min_width=50)
-                    latent_size = gr.Radio(["1:1", "3:4", "4:3"], label="Size", type="index", value="3:4", min_width=250)
+                    seed_number = gr.Number(value=1, label="Seed", min_width=30)
+                    latent_size = gr.Radio(["1:1", "3:4", "4:3"], label="Size", type="index", value="3:4", min_width=245)
                     scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=True)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
@@ -152,6 +166,7 @@ if __name__ == '__main__':
                     change_bt = gr.Button(value="Change", interactive=True)
                 out_img = gr.Image(label="Output")
 
+        scheduler_type.change(model_manager.update_slider, scheduler_type, num_step)
         clear_bt.add(components=[out_img])
         change_bt.click(model_manager.change_model, [model_select, scheduler_type], [model_select])
         input_content.submit(model_manager.generate_image_from_text,
