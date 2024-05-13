@@ -18,6 +18,10 @@ scheduler = ["LCM", "DDIM", "DPM Solver++"]
 for i in samplers_k_diffusion:
     scheduler.append(i[0])
 
+bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
+for i in bad_scheduler:
+    scheduler.remove(i)
+
 
 def seed_torch(seed=1029):
     seed = seed % 4294967296
