@@ -5,16 +5,24 @@ import numpy as np
 import os
 import time
 import random
+from itertools import permutations
 import torch
 # from sd.untool import delete_runtime, free_runtime
 from model_path import model_path
 
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
-SIZE = [("512:512", 512), ("768:768", 768)]
 print(BASENAME)
 scheduler = ["LCM", "DDIM"]
 
+def create_size(*size_elements):
+    unique_size_elements = set(size_elements)
+    rectangle = list(permutations(unique_size_elements, 2))
+    square = [(img_size, img_size) for img_size in unique_size_elements]
+    all_img_size = square + rectangle 
+    return [(f"{size[0]}:{size[1]}", [size[0], size[1]]) for size in all_img_size]
+
+SIZE = create_size(512, 768)
 
 def seed_torch(seed=1029):
     seed = seed % 4294967296
@@ -30,96 +38,70 @@ class ModelManager():
         self.current_model_name = None
         self.pipe = None
         self.size = None
-        self.change_model(BASENAME[0], size=512, scheduler=scheduler[0])
+        self.change_model(BASENAME[0], size=[512,512], scheduler=scheduler[0])
 
-    def pre_check(self, model_select, size, check_type=None):
+    def pre_check(self, model_select, check_type=None):
         check_pass = True
         model_select_path = os.path.join('models', 'basic', model_select)
         te_path = os.path.join(model_select_path, model_path[model_select]['encoder'])
-        unet_512_path = os.path.join(model_select_path, model_path[model_select]['unet']['512'])
-        unet_768_path = os.path.join(model_select_path, model_path[model_select]['unet']['768'])
+        unet_path = os.path.join(model_select_path, model_path[model_select]['unet'])
         vae_de_path = os.path.join(model_select_path, model_path[model_select]['vae_decoder'])
         vae_en_path = os.path.join(model_select_path, model_path[model_select]['vae_encoder'])
 
         if "te" in check_type:
             if not os.path.isfile(te_path):
-                gr.Warning("No {} please download first".format(model_select))
+                gr.Warning("No {} text encoder, please download first".format(model_select))
                 check_pass = False
                 # return False
         if "unet" in check_type:
-            if size == 512:
-                if not os.path.isfile(unet_512_path):
-                    gr.Warning("No {} unet_512 please download first".format(model_select))
-                    check_pass = False
-            else:
-                if not os.path.isfile(unet_768_path):
-                    gr.Warning("No {} unet_768 please download first".format(model_select))
-                    check_pass = False
+            if not os.path.isfile(unet_path):
+                gr.Warning("No {} unet, please download first".format(model_select))
+                check_pass = False
 
         if "vae" in check_type:
             if not os.path.exists(vae_en_path) or not os.path.exists(vae_de_path):
-                gr.Warning("No {} vae please download first".format(model_select))
+                gr.Warning("No {} vae, please download first".format(model_select))
                 check_pass = False
 
         return check_pass
 
     def change_model(self, model_select, size, scheduler, progress=gr.Progress()):
         if self.pipe is None:
-            self.pre_check(model_select, size, check_type=["te", "unet", "vae"])
+            self.pre_check(model_select, check_type=["te", "unet", "vae"])
             self.pipe = StableDiffusionPipeline(
                 basic_model=model_select,
                 scheduler=scheduler,
+                height=size[0],
+                width=size[1],
             )
-            self.pipe.set_height_width(size, size)
+            self.pipe.set_height_width(size[0], size[1])
             self.current_model_name = model_select
             self.size = size
             return
 
-        if self.current_model_name != model_select or self.size != size:
-            if self.current_model_name != model_select:
-                # change both te and unet
-                if self.pre_check(model_select, size, check_type=["te", "unet"]):
-                    try:
-                        gr.Info("Loading {} with {}:{} ...".format(model_select, size, size))
-                        progress(0.4, desc="Loading....")
-                        self.pipe.change_lora(model_select, size)
-                        progress(0.8, desc="Loading....")
-                        self.pipe.set_height_width(size, size)
-                        progress(1, desc="Loading....")
-                        gr.Info("Success load {} LoRa {}:{}".format(model_select, size, size))
-                        self.current_model_name = model_select
-                        self.size = size
-                        return model_select, size
-                    except Exception as e:
-                        print(e)
-                        gr.Error("{}".format(e))
-                        return self.current_model_name, self.size
-                else:
+        if self.current_model_name != model_select:
+            # change both te and unet
+            if self.pre_check(model_select, check_type=["te", "unet", "vae"]):
+                try:
+                    gr.Info("Loading {} with {}:{} ...".format(model_select, size[0], size[1]))
+                    progress(0.4, desc="Loading....")
+                    self.pipe.change_lora(model_select)
+                    progress(0.8, desc="Loading....")
+                    self.pipe.set_height_width(size[0], size[1])
+                    progress(1, desc="Loading....")
+                    gr.Info("Success load {} LoRa {}:{}".format(model_select, size[0], size[1]))
+                    self.current_model_name = model_select
+                    self.size = size
+                    return model_select, size
+                except Exception as e:
+                    print(e)
+                    gr.Error("{}".format(e))
                     return self.current_model_name, self.size
-
-
-            elif self.current_model_name == model_select and self.size != size:
-                # only change the unet
-                if self.pre_check(model_select, size, check_type=["unet"]):
-                    try:
-                        gr.Info("Loading {} unet with {}:{} ...".format(model_select, size, size))
-                        progress(0.6, desc="Loading....")
-                        self.pipe.change_unet(model_select, size)
-                        progress(0.8, desc="Loading....")
-                        self.pipe.set_height_width(size, size)
-                        progress(1, desc="Loading....")
-                        gr.Info("Success load {} LoRa {}:{}".format(model_select, size, size))
-                        self.size = size
-                        return model_select, size
-                    except Exception as e:
-                        print(e)
-                        gr.Error("{}".format(e))
-                        return self.current_model_name, self.size
-                else:
-                    return self.current_model_name, self.size
-
+            else:
+                return self.current_model_name, self.size
         else:
             gr.Info("{} LoRa {}:{} have been loaded".format(model_select, size, size))
+            self.pipe.set_height_width(size[0], size[1])
             return self.current_model_name, self.size
 
     def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, crop=None, scheduler=None):

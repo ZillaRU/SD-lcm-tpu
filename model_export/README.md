@@ -5,14 +5,14 @@
 ## 环境配置
 ```sh
 docker pull sophgo/tpuc_dev:latest
-docker run --privileged --name myname -p 8088:7860 -v $PWD:/workspace -it sophgo/tpuc_dev:latest`
+docker run --privileged --name myname -p 8088:7860 -v $PWD:/workspace -it sophgo/tpuc_dev:latest
 ```
 进入镜像后  
 
 ```sh
 docker exec -it myname bash
 pip3 install dfss --upgrade
-python3 -m dfss --url=open@sophgo.com:/aigc/tpu_mlir-1.6.404-py3-none-any.whl
+python3 -m dfss --url=open@sophgo.com:/aigc/tpu_mlir-1.6.502-py3-none-any.whl
 pip3 install tpu_mlir-1.6.404-py3-none-any.whl
 pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
@@ -43,7 +43,7 @@ python3 export_from_safetensor.py -u xxxxx/model.safetensor -l xxxx/lora.safeten
 ```
 第二步将pt/onnx转为bmodel 
 ```sh 
-python3 convert_bmodel.py -n xxxxx/name -o xxxxx -s 512 512 -b 1 -v sd15
+python3 convert_bmodel.py -n xxxxx/name -o xxxxx -s 512 512 768 768 512 768 768 512 -b 1 -v sd15
 ```
 得到的bmodel 在 `-o xxxxx` 的目录里面 
 结果是这样：
