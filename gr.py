@@ -5,7 +5,6 @@ import numpy as np
 import os
 import time
 import random
-from itertools import permutations
 import torch
 from model_path import model_path
 from sd.scheduler import samplers_k_diffusion
@@ -21,7 +20,6 @@ for i in samplers_k_diffusion:
 bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
 for i in bad_scheduler:
     scheduler.remove(i)
-
 
 def create_size(*size_elements):
     unique_size_elements = set(size_elements)
