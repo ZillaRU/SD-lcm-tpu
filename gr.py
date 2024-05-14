@@ -14,6 +14,10 @@ from itertools import permutations
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
 
+scheduler = ["LCM", "DDIM", "DPM Solver++"]
+for i in samplers_k_diffusion:
+   scheduler.append(i[0])
+
 bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
 for i in bad_scheduler:
     scheduler.remove(i)
@@ -85,8 +89,6 @@ class ModelManager():
             self.pipe = StableDiffusionPipeline(
                 basic_model=model_select,
                 scheduler=scheduler,
-                height=size[0],
-                width=size[1],
             )
             self.current_model_name = model_select
             return
