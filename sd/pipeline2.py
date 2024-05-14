@@ -739,25 +739,6 @@ class StableDiffusionPipeline:
         print(self.text_encoder, self.unet, self.vae_decoder,
               self.vae_encoder, self.controlnet)
 
-
-        st_time = time.time()
-        # vae_encoder.bmodel
-        self.vae_encoder = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, model_path[basic_model]['vae_encoder']), device_id=self.device_id, pre_malloc=True, output_list=[0],
-            sg=False)
-        print("====================== Load VAE EN in ", time.time() - st_time)
-
-        st_time = time.time()
-        # vae_decoer.bmodel
-        self.vae_decoder = UntoolEngineOV("./models/basic/{}/{}".format(
-            basic_model, model_path[basic_model]['vae_decoder']), device_id=self.device_id, pre_malloc=True, output_list=[0],
-            sg=False)
-        self.unet_pure.default_input()
-        print("====================== Load VAE DE in ", time.time() - st_time)
-
-        print(self.text_encoder, self.unet, self.vae_decoder,
-              self.vae_encoder, self.controlnet)
-
     def handle_controlnet_weight(self,controlnet_weight=1.0 ):
         if abs(controlnet_weight - 1) < 1e-2:
             return 
