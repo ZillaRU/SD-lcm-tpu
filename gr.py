@@ -8,12 +8,11 @@ import random
 import torch
 from model_path import model_path
 from sd.scheduler import samplers_k_diffusion
+from itertools import permutations
+
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
-SIZE = {"0": [512, 512],
-        "1": [768, 512],
-        "2": [512, 768]}
-print(BASENAME)
+
 scheduler = ["LCM", "DDIM", "DPM Solver++"]
 for i in samplers_k_diffusion:
     scheduler.append(i[0])
@@ -22,6 +21,14 @@ bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
 for i in bad_scheduler:
     scheduler.remove(i)
 
+def create_size(*size_elements):
+    unique_size_elements = set(size_elements)
+    rectangle = list(permutations(unique_size_elements, 2))
+    square = [(img_size, img_size) for img_size in unique_size_elements]
+    all_img_size = square + rectangle
+    return [(f"{size[0]}:{size[1]}", [size[0], size[1]]) for size in all_img_size]
+
+SIZE = create_size(512, 768) # [('512:512', [512,512]), ]
 
 def seed_torch(seed=1029):
     seed = seed % 4294967296
@@ -40,7 +47,7 @@ class ModelManager():
         self.change_model(BASENAME[0], scheduler=scheduler[0])
 
     def pre_check_latent_size(self, latent_size):
-        latent_size_str = "{}x{}".format(SIZE[str(latent_size)][0], SIZE[str(latent_size)][1])
+        latent_size_str = "{}x{}".format(SIZE[latent_size][1][0], SIZE[latent_size][1][1])
         support_status = model_path[self.current_model_name]["latent_shape"][latent_size_str]
         if support_status == "True":
             return True
@@ -57,17 +64,17 @@ class ModelManager():
 
         if "te" in check_type:
             if not os.path.isfile(te_path):
-                gr.Warning("No {} please download first".format(model_select))
+                gr.Warning("No {} text encoder, please download first".format(model_select))
                 check_pass = False
                 # return False
         if "unet" in check_type:
             if not os.path.isfile(unet_path):
-                gr.Warning("No {} unet please download first".format(model_select))
+                gr.Warning("No {} unet, please download first".format(model_select))
                 check_pass = False
 
         if "vae" in check_type:
             if not os.path.exists(vae_en_path) or not os.path.exists(vae_de_path):
-                gr.Warning("No {} vae please download first".format(model_select))
+                gr.Warning("No {} vae, please download first".format(model_select))
                 check_pass = False
 
         return check_pass
@@ -106,7 +113,7 @@ class ModelManager():
 
     def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None):
         if self.pre_check_latent_size(latent_size):
-            self.pipe.set_height_width(SIZE[str(latent_size)][0], SIZE[str(latent_size)][1])
+            self.pipe.set_height_width(SIZE[latent_size][1][0], SIZE[latent_size][1][1])
             img_pil = self.pipe(
                 init_image=image,
                 prompt=text,
@@ -156,7 +163,8 @@ if __name__ == '__main__':
                                         scale=1)
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="Seed", min_width=30)
-                    latent_size = gr.Radio(["1:1", "3:4", "4:3"], label="Size", type="index", value="3:4", min_width=245)
+                    # latent_size = gr.Radio(["1:1", "3:4", "4:3"], label="Size", type="index", value="3:4", min_width=245)
+                    latent_size = gr.Dropdown(choices=[i[0] for i in SIZE], label="Size", value=[i[0] for i in SIZE][0], type="index", interactive=True)
                     scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=True)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
