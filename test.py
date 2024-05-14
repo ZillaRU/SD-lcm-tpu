@@ -7,15 +7,57 @@ import random
 import torch
 # from sd.untool import delete_runtime, free_runtime
 from model_path import model_path
+from sd.scheduler import samplers_k_diffusion
 
 DEVICE_ID = 0
 # 对路径的要求：
 # 模型必须放在SD-lcm-tpu/models/basic/文件夹下
 #   比如你的模型名字为 aaaa 那么路径就是 SD-lcm-tpu/models/basic/aaaa 
 BASENAME = list(model_path.keys())
-SIZE = [("512:512", 512), ("768:768", 768)]
+def create_size(*size_elements):
+    unique_size_elements = sorted(list(set(size_elements)))
+    all_sizes = []
+    for i in unique_size_elements:
+        for j in unique_size_elements:
+            all_sizes.append([i, j])
+    return [ (f"{size[0]}:{size[1]}", size) for size in all_sizes]
+
+SIZE = create_size(512, 768) # [('512:512', [512,512]), ] W, H
 print(BASENAME)
-scheduler = "LCM"
+# scheduler = "Euler a"
+
+scheduler = ["LCM", "DDIM"]
+for i in samplers_k_diffusion:
+   scheduler.append(i[0])
+
+# bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
+# for i in bad_scheduler:
+#     scheduler.remove(i)
+
+class gr:
+    @classmethod
+    def Info(cls, msg):
+        print(msg)
+    
+    @classmethod
+    def Warning(cls, msg):
+        print(msg)
+
+    @classmethod
+    def Error(cls, msg):
+        print(msg)
+
+    @classmethod
+    def Progress(cls, *args, **kwargs):
+        def inner(*args, **kwargs):
+            print(args, kwargs)
+        return inner
+    
+    @classmethod
+    def Slider(cls, *args, **kwargs):
+        def inner(*args, **kwargs):
+            print(args, kwargs)
+        return inner
 
 def seed_torch(seed=1029):
     seed = seed % 4294967296
@@ -26,150 +68,96 @@ def seed_torch(seed=1029):
     print("set seed to:", seed)
 
 seed_torch(1111)
+
 class ModelManager():
-    def __init__(self, model_name=None, size=512):
-        if model_name in BASENAME:
-            self.current_model_name = model_name
-        else:
-            assert len(BASENAME) > 0, "No model found"
-            self.current_model_name = BASENAME[0]
+    def __init__(self,name=None, scheduler=scheduler[0]):
+        self.current_model_name = None
         self.pipe = None
-        self.size = size
-        self.change_model(self.current_model_name, size=self.size)
+        self.current_scheduler = scheduler
+        if name:
+            self.change_model(name, scheduler=scheduler)
+        else:
+            self.change_model(BASENAME[0], scheduler=scheduler)
 
-    def pre_check(self, model_select, size, check_type=None):
-        check_pass = True
-        model_select_path = os.path.join('models', 'basic', model_select)
-        te_path = os.path.join(model_select_path, model_path[model_select]['encoder'])
-        unet_512_path = os.path.join(model_select_path, model_path[model_select]['unet']['512'])
-        unet_768_path = os.path.join(model_select_path, model_path[model_select]['unet']['768'])
-        vae_de_path = os.path.join(model_select_path, model_path[model_select]['vae_decoder'])
-        vae_en_path = os.path.join(model_select_path, model_path[model_select]['vae_encoder'])
+    def pre_check_latent_size(self, latent_size):
+        latent_size_str = "{}x{}".format(SIZE[latent_size][1][0], SIZE[latent_size][1][1])
+        support_status = model_path[self.current_model_name]["latent_shape"][latent_size_str]
+        if support_status == "True":
+            return True
+        else:
+            return False
 
-        if "te" in check_type:
-            if not os.path.isfile(te_path):
-                Warning("No {} please download first".format(model_select))
-                check_pass = False
-                # return False
-        if "unet" in check_type:
-            if size == 512:
-                if not os.path.isfile(unet_512_path):
-                    Warning("No {} unet_512 please download first".format(model_select))
-                    check_pass = False
-            else:
-                if not os.path.isfile(unet_768_path):
-                    Warning("No {} unet_768 please download first".format(model_select))
-                    check_pass = False
+    def pre_check(self, model_select, check_type=None):
+        return True
 
-        if "vae" in check_type:
-            if not os.path.exists(vae_en_path) or not os.path.exists(vae_de_path):
-                Warning("No {} vae please download first".format(model_select))
-                check_pass = False
-
-        return check_pass
-
-    def change_model(self, model_select, size):
+    def change_model(self, model_select, scheduler=None, progress=gr.Progress()):
         if self.pipe is None:
-            self.pre_check(model_select, size, check_type=["te", "unet", "vae"])
+            # self.pre_check(model_select, check_type=["te", "unet", "vae"])
             self.pipe = StableDiffusionPipeline(
                 basic_model=model_select,
-                scheduler=scheduler,
+                scheduler=scheduler
             )
-            self.pipe.set_height_width(size, size)
             self.current_model_name = model_select
-            self.size = size
             return
 
-        if self.current_model_name != model_select or self.size != size:
-            if self.current_model_name != model_select:
-                # change both te and unet
-                if self.pre_check(model_select, size, check_type=["te", "unet"]):
-                    try:
-                        self.pipe.change_lora(model_select, size)
-                        self.pipe.set_height_width(size, size)
-                        self.current_model_name = model_select
-                        self.size = size
-                        return model_select, size
-                    except Exception as e:
-                        print(e)
-                        return self.current_model_name, self.size
-                else:
-                    return self.current_model_name, self.size
-
-
-            elif self.current_model_name == model_select and self.size != size:
-                # only change the unet
-                if self.pre_check(model_select, size, check_type=["unet"]):
-                    try:
-                        self.pipe.change_unet(model_select, size)
-                        self.pipe.set_height_width(size, size)
-                        self.size = size
-                        return model_select, size
-                    except Exception as e:
-                        print(e)
-                        return self.current_model_name, self.size
-                else:
-                    return self.current_model_name, self.size
+        if self.current_model_name != model_select:
+            # change both te, unet, vae
+            if self.pre_check(model_select, check_type=["te", "unet", "vae"]):
+                try:
+                    gr.Info("Loading {} ...".format(model_select))
+                    progress(0.4, desc="Loading....")
+                    self.pipe.change_lora(model_select)
+                    progress(0.8, desc="Loading....")
+                    gr.Info("Success load {} LoRa".format(model_select))
+                    self.current_model_name = model_select
+                    return model_select
+                except Exception as e:
+                    print(e)
+                    gr.Error("{}".format(e))
+                    return self.current_model_name
+            else:
+                return self.current_model_name
 
         else:
-            return self.current_model_name, self.size
+            gr.Info("{} LoRa have been loaded".format(model_select))
+            return self.current_model_name
 
-    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, crop=None, controlnet_img=None, controlnet_weight=1.0,controlnet_args={}):
-        img_pil = self.pipe(
-            init_image=image,
-            prompt=text,
-            negative_prompt="low resolution",
-            num_inference_steps=step,
-            strength=strength,
-            scheduler=scheduler,
-            guidance_scale=0,
-            controlnet_img=controlnet_img,
-            seeds=[random.randint(0, 1000000) if seed is None else seed],
-            controlnet_args=controlnet_args,
-            controlnet_weight=controlnet_weight
-        )
-        if crop == 1:
-            h, w = img_pil.size
-            print(h, w)
-            img_pil = img_pil.crop((1/8*w, 0, 7/8*w, h))
-        return img_pil
+    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None):
+        if self.pre_check_latent_size(latent_size):
+            self.pipe.set_height_width(SIZE[latent_size][1][1], SIZE[latent_size][1][0])
+            img_pil = self.pipe(
+                init_image=image,
+                prompt=text,
+                negative_prompt=negative_prompt,
+                num_inference_steps=step,
+                strength=strength,
+                scheduler=scheduler,
+                guidance_scale=guidance_scale,
+                enable_prompt_weight = enable_prompt_weight,
+                seeds=[random.randint(0, 1000000) if seed is None else seed]
+            )
 
-name = "meinamix"
-model_manager = ModelManager(name, 512)
+            return img_pil
+        else:
+            gr.Info("{} do not support this size, please check model info".format(self.current_model_name))
 
-# text2img
-text = "a photo of cat"
-img = model_manager.generate_image_from_text(text, step=4, strength=1)
-img.save("test_kh.png")
+    def update_slider(self, scheduler):
+        if scheduler != self.current_scheduler and scheduler == "LCM":
+            self.current_scheduler = scheduler
+            return gr.Slider(minimum=3, maximum=10, step=1, value=4, label="Steps", scale=2)
+        elif scheduler != self.current_scheduler and self.current_scheduler == "LCM":
+            self.current_scheduler = scheduler
+            return gr.Slider(minimum=15, maximum=40, step=1, value=20, label="Steps", scale=2)
+        else:
+            return 20
 
+model_name = "meinamix"
+model_manager = ModelManager(model_name)
 
-text = "a photo of cat"
-controlnet_img = Image.open("test_kh.png")
-img = model_manager.generate_image_from_text(text, step=4, strength=1, controlnet_img=controlnet_img, controlnet_weight =0.1, controlnet_args={
-    "low_threshold": 100,
-    "height_threshold": 140,
-    "save_canny": True,# will store canny image into "canny.jpg"
-    "start":1,
-    "end":2
-})
-# end can be -1 if you want to use the last step
-img.save("test_kh2w0.png")
-
-
-# img2img
-text = "a photo of dog"
-controlnet_img = Image.open("test_kh.png")
-source_img = Image.open("test_kh.png")
-img = model_manager.generate_image_from_text(text, step=10, strength=0.7, image=source_img, controlnet_img=controlnet_img, controlnet_weight =0.8, controlnet_args={
-    "low_threshold": 150,
-    "height_threshold": 250,
-    "save_canny": True
-})
-img.save("test_kh3.png")
-
-# img2img+controlnet
-text = "a photo of dog"
-controlnet_img = Image.open("test_kh.png")
-source_img = Image.open("test_kh.png")
-img = model_manager.generate_image_from_text(text, step=10, strength=0.7, image=source_img)
-img.save("test_kh4.png")
+prompt = "a beautiful landscape painting"
+negative_prompt = "bad"
+latent_size = 0
+scheduler = "LCM"
+guidance_scale = 0.9
+img = model_manager.generate_image_from_text(prompt, negative_prompt=negative_prompt, latent_size=latent_size, scheduler=scheduler, guidance_scale=guidance_scale)
+img.save("test.png")

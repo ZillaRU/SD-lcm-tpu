@@ -9,6 +9,9 @@ import torch
 from model_path import model_path
 from sd.scheduler import samplers_k_diffusion
 from itertools import permutations
+import warnings
+
+warnings.filterwarnings("ignore")
 
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
@@ -22,14 +25,14 @@ for i in bad_scheduler:
     scheduler.remove(i)
 
 def create_size(*size_elements):
-    unique_size_elements = set(size_elements)
-    rectangle = list(permutations(unique_size_elements, 2))
-    square = [(img_size, img_size) for img_size in unique_size_elements]
-    all_img_size = square + rectangle
-    return [(f"{size[0]}:{size[1]}", [size[0], size[1]]) for size in all_img_size]
+    unique_size_elements = sorted(list(set(size_elements)))
+    all_sizes = []
+    for i in unique_size_elements:
+        for j in unique_size_elements:
+            all_sizes.append([i, j])
+    return [ (f"{size[0]}:{size[1]}", size) for size in all_sizes]
 
 SIZE = create_size(512, 768) # [('512:512', [512,512]), ] W, H
-
 
 def seed_torch(seed=1029):
     seed = seed % 4294967296
@@ -45,7 +48,7 @@ class ModelManager():
         self.current_model_name = None
         self.pipe = None
         self.current_scheduler = scheduler[0]
-        self.change_model(BASENAME[0], scheduler=scheduler[0])
+        # self.change_model(BASENAME[0], scheduler=scheduler[0])
 
     def pre_check_latent_size(self, latent_size):
         latent_size_str = "{}x{}".format(SIZE[latent_size][1][0], SIZE[latent_size][1][1])

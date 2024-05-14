@@ -1,7 +1,7 @@
 # 使用Airbox (SG2300X inside) 实现一秒内图像生成（支持文生图、图生图）
 
 ## 简介
-这个项目提供了一个基于 Gradio 的 Web 界面，允许用户通过文本描述或上传图片来生成图像。用户还可自行替换出图模型（使用本项目中的脚本自行转换Civitai等模型checkpoint为bmodel即可）。
+这个项目提供了一个基于 Gradio 的 Web 界面，允许用户通过文本描述或上传图片来生成图像。用户还可自行替换出图模型（使用本项目中的脚本自行转换Civitai等模型checkpoint为bmodel即可）**注意：本次更新后不会默认加载模型，必须先选择需要的模型进行加载**。
 
 - **文本到图像（Text-to-Image）**：输入描述性文本，系统将根据文本生成相应的图像。
   <img width="681" alt="9000e7dbcee891ba3c90de91b87f7b2" src="https://github.com/ZillaRU/SD-lcm-tpu/assets/25343084/be075231-60a8-4d9e-a21f-25882bcb3177">
