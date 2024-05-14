@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 log = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", "--shape_lists", type=int, nargs='+', default="512,512")
+parser.add_argument("-s", "--shape_lists", type=int, nargs='+', default="512 512 768 768")
 parser.add_argument("-v", "--sdversion", type=str, default="sd15")
 parser.add_argument("-n", "--path", type=str)
 parser.add_argument("-b", "--batch", type=int, default=1)

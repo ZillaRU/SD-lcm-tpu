@@ -26,6 +26,7 @@ model_path = {
             "768x512": "False",
             "512x768": "False"
         }
+
     },
     "awportrait": {
         "name": "awportrait",

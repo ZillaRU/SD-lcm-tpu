@@ -12,8 +12,8 @@ docker run --privileged --name myname -p 8088:7860 -v $PWD:/workspace -it sophgo
 ```sh
 docker exec -it myname bash
 pip3 install dfss --upgrade
-python3 -m dfss --url=open@sophgo.com:/aigc/tpu_mlir-1.6.404-py3-none-any.whl
-pip3 install tpu_mlir-1.6.502-py3-none-any.whl
+python3 -m dfss --url=open@sophgo.com:/aigc/tpu_mlir-1.6.502-py3-none-any.whl
+pip3 install tpu_mlir-1.6.404-py3-none-any.whl
 pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 bash prepare.sh
