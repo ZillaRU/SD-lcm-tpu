@@ -163,7 +163,6 @@ if __name__ == '__main__':
                                         scale=1)
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="Seed", min_width=30)
-                    # latent_size = gr.Radio(["1:1", "3:4", "4:3"], label="Size", type="index", value="3:4", min_width=245)
                     latent_size = gr.Dropdown(choices=[i[0] for i in SIZE], label="Size", value=[i[0] for i in SIZE][0], type="index", interactive=True)
                     scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=True)
                 with gr.Row():
@@ -174,7 +173,6 @@ if __name__ == '__main__':
             with gr.Column():
                 with gr.Row():
                     model_select = gr.Dropdown(choices=BASENAME, value=BASENAME[0], label="Model", interactive=True)
-                    # size = gr.Dropdown(choices=SIZE, value=512, label="Size", interactive=True)
                     change_bt = gr.Button(value="Change", interactive=True)
                 out_img = gr.Image(label="Output")
 
