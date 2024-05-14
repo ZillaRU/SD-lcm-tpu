@@ -5,6 +5,7 @@ import numpy as np
 import os
 import time
 import random
+from itertools import permutations
 import torch
 from model_path import model_path
 from sd.scheduler import samplers_k_diffusion
@@ -13,13 +14,10 @@ from itertools import permutations
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
 
-scheduler = ["LCM", "DDIM", "DPM Solver++"]
-for i in samplers_k_diffusion:
-    scheduler.append(i[0])
-
 bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
 for i in bad_scheduler:
     scheduler.remove(i)
+
 
 def create_size(*size_elements):
     unique_size_elements = set(size_elements)
@@ -29,6 +27,7 @@ def create_size(*size_elements):
     return [(f"{size[0]}:{size[1]}", [size[0], size[1]]) for size in all_img_size]
 
 SIZE = create_size(512, 768) # [('512:512', [512,512]), ]
+
 
 def seed_torch(seed=1029):
     seed = seed % 4294967296
@@ -53,6 +52,7 @@ class ModelManager():
             return True
         else:
             return False
+
 
     def pre_check(self, model_select, check_type=None):
         check_pass = True
@@ -85,6 +85,8 @@ class ModelManager():
             self.pipe = StableDiffusionPipeline(
                 basic_model=model_select,
                 scheduler=scheduler,
+                height=size[0],
+                width=size[1],
             )
             self.current_model_name = model_select
             return
