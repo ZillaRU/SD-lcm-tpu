@@ -23,7 +23,7 @@ bash prepare.sh
 
 将模型从safetensor转为pt/onnx  
 ```sh
-python3 export_from_safetensor.py -u xxxxx/model.safetensor -l xxxx/lora.safetensor -c xxxx/controlnet.safetensor -b 1 -o xxxxx/name 
+python3 export_from_safetensor_sd15_cli_wrapper.py -u xxxxx/model.safetensor -l xxxx/lora.safetensor -c xxxx/controlnet.safetensor -b 1 -o xxxxx/name 
 ```
 这里需要考虑到：如果没有controlnet可以不传-c参数，如果没有lora可以不传-l参数。
 
@@ -43,7 +43,7 @@ python3 export_from_safetensor.py -u xxxxx/model.safetensor -l xxxx/lora.safeten
 ```
 第二步将pt/onnx转为bmodel 
 ```sh 
-python3 convert_bmodel.py -n xxxxx/name -o xxxxx -s 512 512 768 768 512 768 768 512 -b 1 -v sd15
+python3 convert_bmodel_cli_wrapper.py -n xxxxx/name -o xxxxx -s 512 512 768 768 768 512 512 768 -b 1 -v sd15
 ```
 得到的bmodel 在 `-o xxxxx` 的目录里面 
 结果是这样：
@@ -74,7 +74,7 @@ python3 gr_docker.py
    
    🌟 选择镜像内文件
    
-   ❌ URL 自动下载 [筹备中]
+   🌟 URL 自动下载 
 
 
 - 步骤2：转换 onnx/pt 格式模型至 bmodel 

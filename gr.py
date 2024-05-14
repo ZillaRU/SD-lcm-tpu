@@ -7,22 +7,27 @@ import time
 import random
 from itertools import permutations
 import torch
-# from sd.untool import delete_runtime, free_runtime
 from model_path import model_path
+from sd.scheduler import samplers_k_diffusion
+from itertools import permutations
 
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
-print(BASENAME)
-scheduler = ["LCM", "DDIM"]
+
+bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
+for i in bad_scheduler:
+    scheduler.remove(i)
+
 
 def create_size(*size_elements):
     unique_size_elements = set(size_elements)
     rectangle = list(permutations(unique_size_elements, 2))
     square = [(img_size, img_size) for img_size in unique_size_elements]
-    all_img_size = square + rectangle 
+    all_img_size = square + rectangle
     return [(f"{size[0]}:{size[1]}", [size[0], size[1]]) for size in all_img_size]
 
-SIZE = create_size(512, 768)
+SIZE = create_size(512, 768) # [('512:512', [512,512]), ]
+
 
 def seed_torch(seed=1029):
     seed = seed % 4294967296
@@ -37,8 +42,17 @@ class ModelManager():
     def __init__(self):
         self.current_model_name = None
         self.pipe = None
-        self.size = None
-        self.change_model(BASENAME[0], size=[512,512], scheduler=scheduler[0])
+        self.current_scheduler = scheduler[0]
+        self.change_model(BASENAME[0], scheduler=scheduler[0])
+
+    def pre_check_latent_size(self, latent_size):
+        latent_size_str = "{}x{}".format(SIZE[latent_size][1][0], SIZE[latent_size][1][1])
+        support_status = model_path[self.current_model_name]["latent_shape"][latent_size_str]
+        if support_status == "True":
+            return True
+        else:
+            return False
+
 
     def pre_check(self, model_select, check_type=None):
         check_pass = True
@@ -65,7 +79,7 @@ class ModelManager():
 
         return check_pass
 
-    def change_model(self, model_select, size, scheduler, progress=gr.Progress()):
+    def change_model(self, model_select, scheduler=None, progress=gr.Progress()):
         if self.pipe is None:
             self.pre_check(model_select, check_type=["te", "unet", "vae"])
             self.pipe = StableDiffusionPipeline(
@@ -74,55 +88,62 @@ class ModelManager():
                 height=size[0],
                 width=size[1],
             )
-            self.pipe.set_height_width(size[0], size[1])
             self.current_model_name = model_select
-            self.size = size
             return
 
         if self.current_model_name != model_select:
-            # change both te and unet
+            # change both te, unet, vae
             if self.pre_check(model_select, check_type=["te", "unet", "vae"]):
                 try:
-                    gr.Info("Loading {} with {}:{} ...".format(model_select, size[0], size[1]))
+                    gr.Info("Loading {} ...".format(model_select))
                     progress(0.4, desc="Loading....")
                     self.pipe.change_lora(model_select)
                     progress(0.8, desc="Loading....")
-                    self.pipe.set_height_width(size[0], size[1])
-                    progress(1, desc="Loading....")
-                    gr.Info("Success load {} LoRa {}:{}".format(model_select, size[0], size[1]))
+                    gr.Info("Success load {} LoRa".format(model_select))
                     self.current_model_name = model_select
-                    self.size = size
-                    return model_select, size
+                    return model_select
                 except Exception as e:
                     print(e)
                     gr.Error("{}".format(e))
-                    return self.current_model_name, self.size
+                    return self.current_model_name
             else:
-                return self.current_model_name, self.size
-        else:
-            gr.Info("{} LoRa {}:{} have been loaded".format(model_select, size, size))
-            self.pipe.set_height_width(size[0], size[1])
-            return self.current_model_name, self.size
+                return self.current_model_name
 
-    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, crop=None, scheduler=None):
-        img_pil = self.pipe(
-            init_image=image,
-            prompt=text,
-            negative_prompt="low resolution",
-            num_inference_steps=step,
-            strength=strength,
-            scheduler=scheduler,
-            guidance_scale=0,
-            seeds=[random.randint(0, 1000000) if seed is None else seed]
-        )
-        if crop == 1:
-            h, w = img_pil.size
-            print(h, w)
-            img_pil = img_pil.crop((1/8*w, 0, 7/8*w, h))
-        return img_pil
+        else:
+            gr.Info("{} LoRa have been loaded".format(model_select))
+            return self.current_model_name
+
+    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None):
+        if self.pre_check_latent_size(latent_size):
+            self.pipe.set_height_width(SIZE[latent_size][1][0], SIZE[latent_size][1][1])
+            img_pil = self.pipe(
+                init_image=image,
+                prompt=text,
+                negative_prompt="low resolution",
+                num_inference_steps=step,
+                strength=strength,
+                scheduler=scheduler,
+                guidance_scale=0,
+                seeds=[random.randint(0, 1000000) if seed is None else seed]
+            )
+
+            return img_pil
+        else:
+            gr.Info("{} do not support this size, please check model info".format(self.current_model_name))
+
+    def update_slider(self, scheduler):
+        if scheduler != self.current_scheduler and scheduler == "LCM":
+            self.current_scheduler = scheduler
+            return gr.Slider(minimum=3, maximum=10, step=1, value=4, label="Steps", scale=2)
+        elif scheduler != self.current_scheduler and self.current_scheduler == "LCM":
+            self.current_scheduler = scheduler
+            return gr.Slider(minimum=15, maximum=40, step=1, value=20, label="Steps", scale=2)
+        else:
+            return 20
 
 
 model_manager = ModelManager()
+
 
 description = """
 # Text-to-Image and Image-to-Image Generator
@@ -139,13 +160,13 @@ if __name__ == '__main__':
                 input_content = gr.Textbox(lines=1, label="Input content")
                 upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='pil', label="image")
                 with gr.Row():
-                    num_step = gr.Slider(minimum=3, maximum=20, value=4, step=1, label="Steps", scale=2)
+                    num_step = gr.Slider(minimum=3, maximum=10, value=4, step=1, label="Steps", scale=2)
                     denoise = gr.Slider(minimum=0.2, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength",
                                         scale=1)
                 with gr.Row():
-                    seed_number = gr.Number(value=1, label="seed")
-                    crop = gr.Radio(["1:1", "3:4"], label="Crop", type="index", value="1:1")
-                    scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=False)
+                    seed_number = gr.Number(value=1, label="Seed", min_width=30)
+                    latent_size = gr.Dropdown(choices=[i[0] for i in SIZE], label="Size", value=[i[0] for i in SIZE][0], type="index", interactive=True)
+                    scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=True)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
                                               components=[input_content, upload_image, seed_number, denoise,
@@ -154,16 +175,16 @@ if __name__ == '__main__':
             with gr.Column():
                 with gr.Row():
                     model_select = gr.Dropdown(choices=BASENAME, value=BASENAME[0], label="Model", interactive=True)
-                    size = gr.Dropdown(choices=SIZE, value=512, label="Size", interactive=True)
                     change_bt = gr.Button(value="Change", interactive=True)
                 out_img = gr.Image(label="Output")
 
+        scheduler_type.change(model_manager.update_slider, scheduler_type, num_step)
         clear_bt.add(components=[out_img])
-        change_bt.click(model_manager.change_model, [model_select, size, scheduler_type], [model_select, size])
+        change_bt.click(model_manager.change_model, [model_select, scheduler_type], [model_select])
         input_content.submit(model_manager.generate_image_from_text,
-                             [input_content, upload_image, num_step, denoise, seed_number], [out_img])
+                             [input_content, upload_image, num_step, denoise, seed_number, latent_size, scheduler_type], [out_img])
         submit_bt.click(model_manager.generate_image_from_text,
-                        [input_content, upload_image, num_step, denoise, seed_number, crop, scheduler_type], [out_img])
+                        [input_content, upload_image, num_step, denoise, seed_number, latent_size, scheduler_type], [out_img])
 
     # 运行 Gradio 应用
     demo.queue(max_size=10)
