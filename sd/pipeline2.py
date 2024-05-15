@@ -703,7 +703,7 @@ class StableDiffusionPipeline:
             self.controlnet.free_runtime()
             self.controlnet = None
             self.controlnet_name = None
-            
+
     def change_controlnet(self, controlnet):
         self.free_controlnet_runtime()
         if controlnet == None:

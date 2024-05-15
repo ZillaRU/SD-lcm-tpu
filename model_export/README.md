@@ -58,10 +58,10 @@ python3 convert_bmodel_cli_wrapper.py -n xxxxx/name -o xxxxx -s 512 512 768 768 
 - `-s 512 512` 是image size, 必须是8的整数倍，相应的`latent shape`是`[1,4,size[0]//8,size[1]//8]`。如果想接入多个shape，则可以这么写 `-s w h w2 h2` 注意shape不能太大 不要超过1024 
 
 ## 3. 使用bmodel
-在`model_path.py`中模型列表的最前面填上新模型的路径信息（应用默认加载该列表中的第一个模型）。
+在`model_path.py`中模型列表的最前面填上新模型的路径信息，默认不加载模型，gradio启动后请手动加载。
 
 ## 4. 交互式转换 UI Support ✅
-启动模型转换器服务
+在docker中启动模型转换器服务
 ```bash
 python3 gr_docker.py
 ```
@@ -72,7 +72,7 @@ python3 gr_docker.py
 
    ⭐ 支持浏览器上传
    
-   🌟 选择镜像内文件
+   🌟 选择容器内文件
    
    🌟 URL 自动下载 
 

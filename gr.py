@@ -201,7 +201,7 @@ if __name__ == '__main__':
                     denoise = gr.Slider(minimum=0.2, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength",
                                         scale=1)
                 with gr.Row():
-                    guidance_scale = gr.Slider(minimum=0, maximum=20, value=0, step=0.5, label="CFG scale", scale=2)
+                    guidance_scale = gr.Slider(minimum=0, maximum=20, value=0, step=0.1, label="CFG scale", scale=2)
                     enable_prompt_weight = gr.Checkbox(label="Prompt weight")
 
                 with gr.Row():
