@@ -155,9 +155,10 @@ model_name = "meinamix"
 model_manager = ModelManager(model_name)
 
 prompt = "a beautiful landscape painting"
-negative_prompt = "bad"
+negative_prompt = "low quality, bad resolution"
 latent_size = 0
-scheduler = "LCM"
-guidance_scale = 0.9
-img = model_manager.generate_image_from_text(prompt, negative_prompt=negative_prompt, latent_size=latent_size, scheduler=scheduler, guidance_scale=guidance_scale)
+scheduler = "Euler a"
+step = 4
+guidance_scale = 1.1
+img = model_manager.generate_image_from_text(prompt, step=step, negative_prompt=negative_prompt, latent_size=latent_size, scheduler=scheduler, guidance_scale=guidance_scale)
 img.save("test.png")

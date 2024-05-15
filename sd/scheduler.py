@@ -816,8 +816,8 @@ def sample_dpmpp_2m_sde(model, x, sigmas, extra_args=None, callback=None, disabl
 def model_runner( discreteEpsDDPMDenoiser, guidance_scale, x, sigmas, mask=None, using_paint=False,  **extra_args):
     output = None
     if guidance_scale > 1.0:
-        sigmas = torch.tensor([sigmas, sigmas])
-        x = torch.cat([x, x], dim=0)
+        # sigmas = torch.tensor([sigmas, sigmas])
+        # x = torch.cat([x, x], dim=0)
         # must get two batch for accelerate
         output = discreteEpsDDPMDenoiser(x, sigmas, **extra_args)
         denoise = output[0] + guidance_scale * (output[1] - output[0])
