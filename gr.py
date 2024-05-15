@@ -15,7 +15,8 @@ warnings.filterwarnings("ignore")
 
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
-
+CONTROLNET = os.listdir('./models/controlnet')
+CONTROLNET = [i.split('.')[0] for i in CONTROLNET]
 scheduler = ["LCM", "DDIM", "DPM Solver++"]
 for i in samplers_k_diffusion:
    scheduler.append(i[0])
@@ -48,10 +49,11 @@ class ModelManager():
         self.current_model_name = None
         self.pipe = None
         self.current_scheduler = scheduler[0]
+        self.controlnet = None
         # self.change_model(BASENAME[0], scheduler=scheduler[0])
 
-    def pre_check_latent_size(self, latent_size):
-        latent_size_str = "{}x{}".format(SIZE[latent_size][1][0], SIZE[latent_size][1][1])
+    def pre_check_latent_size(self, latent_size_index):
+        latent_size_str = "{}x{}".format(SIZE[latent_size_index][1][0], SIZE[latent_size_index][1][1])
         support_status = model_path[self.current_model_name]["latent_shape"].get(latent_size_str)
         if support_status == "True":
             return True
@@ -84,41 +86,71 @@ class ModelManager():
 
         return check_pass
 
-    def change_model(self, model_select, scheduler=None, progress=gr.Progress()):
-        if self.pipe is None:
-            self.pre_check(model_select, check_type=["te", "unet", "vae"])
-            self.pipe = StableDiffusionPipeline(
-                basic_model=model_select,
-                scheduler=scheduler,
-            )
-            self.current_model_name = model_select
-            return
+    def change_model(self, model_select, scheduler=None, controlnet=None, progress=gr.Progress()):
+        if controlnet == []:
+            controlnet = None
+        if model_select == []:
+            model_select = None
+        if model_select is not None:
+            if self.pipe is None:
+                self.pre_check(model_select, check_type=["te", "unet", "vae"])
+                self.pipe = StableDiffusionPipeline(
+                    basic_model=model_select,
+                    scheduler=scheduler,
+                    controlnet_name=controlnet,
+                )
+                self.current_model_name = model_select
+                self.controlnet = controlnet
+                return self.current_model_name, self.controlnet
 
-        if self.current_model_name != model_select:
-            # change both te, unet, vae
-            if self.pre_check(model_select, check_type=["te", "unet", "vae"]):
+            if self.current_model_name != model_select:
+                # change both te, unet, vae
+                if self.pre_check(model_select, check_type=["te", "unet", "vae"]):
+                    try:
+                        gr.Info("Loading {} ...".format(model_select))
+                        progress(0.4, desc="Loading....")
+                        self.pipe.change_lora(model_select)
+                        progress(0.8, desc="Loading....")
+                        gr.Info("Success load {} LoRa".format(model_select))
+                        progress(0.9, desc="Loading....")
+                        self.pipe.change_controlnet(controlnet)
+                        self.current_model_name = model_select
+                        self.controlnet = controlnet
+
+                    except Exception as e:
+                        print(e)
+                        gr.Error("{}".format(e))
+                        return self.current_model_name, self.controlnet
+
+                else:
+                    return self.current_model_name, self.controlnet
+
+            if self.controlnet != controlnet:
                 try:
-                    gr.Info("Loading {} ...".format(model_select))
-                    progress(0.4, desc="Loading....")
-                    self.pipe.change_lora(model_select)
-                    progress(0.8, desc="Loading....")
-                    gr.Info("Success load {} LoRa".format(model_select))
-                    self.current_model_name = model_select
-                    return model_select
+                    progress(0.9, desc="Loading....")
+                    self.pipe.change_controlnet(controlnet)
+                    self.controlnet = controlnet
                 except Exception as e:
                     print(e)
                     gr.Error("{}".format(e))
-                    return self.current_model_name
+                    return self.current_model_name, self.controlnet
+
             else:
-                return self.current_model_name
+                gr.Info("{} LoRa with {} have been loaded".format(model_select, controlnet))
+                return self.current_model_name, self.controlnet
+
+            return self.current_model_name, self.controlnet
 
         else:
-            gr.Info("{} LoRa have been loaded".format(model_select))
-            return self.current_model_name
+            gr.Info("Please select a model")
+            return None, None
 
-    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None):
-        if self.pre_check_latent_size(latent_size):
-            self.pipe.set_height_width(SIZE[latent_size][1][1], SIZE[latent_size][1][0])
+    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size_index=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None):
+        if self.pipe is None:
+            gr.Info("Please select a model")
+            return None
+        elif self.pre_check_latent_size(latent_size_index):
+            self.pipe.set_height_width(SIZE[latent_size_index][1][1], SIZE[latent_size_index][1][0])
             img_pil = self.pipe(
                 init_image=image,
                 prompt=text,
@@ -174,7 +206,7 @@ if __name__ == '__main__':
 
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="Seed", scale=1)
-                    latent_size = gr.Dropdown(choices=[i[0] for i in SIZE], label="Size", value=[i[0] for i in SIZE][0], type="index", interactive=True,scale=1)
+                    latent_size_index = gr.Dropdown(choices=[i[0] for i in SIZE], label="Size", value=[i[0] for i in SIZE][0], type="index", interactive=True,scale=1)
                     scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=True,scale=1)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
@@ -183,19 +215,20 @@ if __name__ == '__main__':
                     submit_bt = gr.Button(value="Submit", variant="primary")
             with gr.Column():
                 with gr.Row():
-                    model_select = gr.Dropdown(choices=BASENAME, value=BASENAME[0], label="Model", interactive=True)
-                    change_bt = gr.Button(value="Change", interactive=True)
+                    model_select = gr.Dropdown(choices=BASENAME, value=None, label="Model", interactive=True)
+                    controlnet = gr.Dropdown(choices=CONTROLNET, value=None, label="Controlnet", interactive=True)
+                    load_bt = gr.Button(value="Load Model", interactive=True)
                 out_img = gr.Image(label="Output")
 
         scheduler_type.change(model_manager.update_slider, scheduler_type, num_step)
         clear_bt.add(components=[out_img])
-        change_bt.click(model_manager.change_model, [model_select, scheduler_type], [model_select])
+        load_bt.click(model_manager.change_model, [model_select, scheduler_type, controlnet], [model_select, controlnet])
         input_content.submit(model_manager.generate_image_from_text,
-                             [input_content, upload_image, num_step, denoise, seed_number, latent_size, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
+                             [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
         negative_prompt.submit(model_manager.generate_image_from_text,
-                             [input_content, upload_image, num_step, denoise, seed_number, latent_size, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
+                             [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
         submit_bt.click(model_manager.generate_image_from_text,
-                        [input_content, upload_image, num_step, denoise, seed_number, latent_size, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
+                        [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
 
     # 运行 Gradio 应用
     demo.queue(max_size=10)
