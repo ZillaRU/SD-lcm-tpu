@@ -104,7 +104,7 @@ class StableDiffusionPipeline:
             basic_model, model_path[basic_model]['vae_encoder']), device_id=self.device_id, pre_malloc=True, output_list=[0], sg=False)
         print("====================== Load VAE EN in ", time.time()-st_time)
         
-        controlnet_name = None if "controlnet" not in model_path[basic_model] else model_path[basic_model]["controlnet"]
+        # controlnet_name = None if "controlnet" not in model_path[basic_model] else model_path[basic_model]["controlnet"]
         if controlnet_name:
             self.controlnet = UntoolEngineOV("./models/controlnet/{}.bmodel".format(
                 controlnet_name), device_id=self.device_id,  pre_malloc=False, sg=False)
@@ -698,6 +698,29 @@ class StableDiffusionPipeline:
         self.vae_encoder.free_runtime()
         self.vae_decoder.free_runtime()
 
+    def free_controlnet_runtime(self):
+        if self.controlnet != None:
+            self.controlnet.free_runtime()
+            self.controlnet = None
+            self.controlnet_name = None
+
+    def change_controlnet(self, controlnet):
+        self.free_controlnet_runtime()
+        if controlnet == None:
+            self.controlnet = None
+            self.controlnet_name = None
+        else:
+            st_time = time.time()
+            self.controlnet = UntoolEngineOV("./models/controlnet/{}.bmodel".format(
+                controlnet), device_id=self.device_id,  pre_malloc=False, sg=False)
+            unet_controlnet_map = {v:k for k,v in sd_controlnet_unet_default_link_map.items()}
+            link_bmodel(self.unet_pure, self.controlnet, unet_controlnet_map)
+            self.controlnet.fill_io_max()
+            self.controlnet.check_and_move_to_device()
+            self.controlnet.default_input()
+            self.controlnet_name = controlnet
+            print("====================== Load CONTROLNET in ", time.time() - st_time)
+
 
     def change_lora(self, basic_model):
         self.free_tpu_runtime()
@@ -730,7 +753,7 @@ class StableDiffusionPipeline:
         print("====================== Load VAE EN in ", time.time() - st_time)
 
         print(self.text_encoder, self.unet, self.vae_decoder,
-              self.vae_encoder, self.controlnet)
+              self.vae_encoder)
 
     def handle_controlnet_weight(self,controlnet_weight=1.0 ):
         if abs(controlnet_weight - 1) < 1e-2:
