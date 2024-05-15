@@ -812,70 +812,77 @@ class StableDiffusionPipeline:
         print("have controlnet ", self.cur_step)
         return True
 
-    def run_controlnet_with_cfg(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
-        if not self.judge_use_controlnet(controlnet_img, controlnet_weight):
-            return False
-        # should check controlnet inputs is 2 batch ? do not consider right now 
-        # controlnet cfg is hard to implement with 1 batch 
-        ValueError("not implement yet")
-        controlnet_input_map = None
-        if self.cur_step == self.controlnet_start:
-            if self.cur_step == 0:
-                controlnet_input_map = {
-                    0: {
-                        "data": latent.astype(np.float32),
-                        "flag": 0
-                    },
-                    1: {
-                        "data": text_embedding,
-                        "flag": 0
-                    },
-                    2: {
-                        "data": controlnet_img,
-                        "flag": 0
-                    },
-                    3: {
-                        "data": t,
-                        "flag": 0
-                    }
-                }
-            else:
-                controlnet_input_map = {
-                    0: {
-                        "data": latent.astype(np.float32),
-                        "flag": 0
-                    },
-                    2: {
-                        "data": controlnet_img,
-                        "flag": 0
-                    },
-                    3: {
-                        "data": t,
-                        "flag": 0
-                    }
-                }
-        else:
-            controlnet_input_map = {
-                0: {
-                    "data": latent.astype(np.float32),
-                    "flag": 0
-                },
-                3: {
-                    "data": t,
-                    "flag": 0
-                }
+    def run_cfg_unet_controlnet_step(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
+        assert(self.cur_step > 0)
+        controlnet_input_map = {
+            0: {
+                "data": latent.astype(np.float32),
+                "flag": 0
+            },
+            1: {
+                "data": text_embedding[0],
+                "flag": 0
+            },
+            3: {
+                "data": t,
+                "flag": 0
             }
+        }
+        self.controlnet.run_with_np(controlnet_input_map)
+        cf_unet_res = self.unet.run_with_np()
+        controlnet_input_map = {
+            1: {
+                "data": text_embedding[1],
+                "flag": 0
+            },
+        }
         self.controlnet.run_with_np(controlnet_input_map)
         self.handle_controlnet_weight(controlnet_weight)
-        print("have controlnet ", self.cur_step)
-        return True
+        c_unet_res = self.unet.run_with_np()
+        res = [np.concatenate((cf_unet_res[0], c_unet_res[0]), axis=0)]
+        return res
+
+    def run_cfg_unet_controlnet_first_step(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
+        assert(self.cur_step == 0)
+        controlnet_input_map = {
+            0: {
+                "data": latent.astype(np.float32),
+                "flag": 0
+            },
+            1: {
+                "data": text_embedding[0],
+                "flag": 0
+            },
+            2: {
+                "data": controlnet_img,
+                "flag": 0
+            },
+            3: {
+                "data": t,
+                "flag": 0
+            }
+        }
+        self.controlnet.run_with_np(controlnet_input_map)
+        print("cfg have controlnet ", self.cur_step)
+        cf_unet_res = self.unet.run_with_np()
+        controlnet_input_map = {
+            1: {
+                "data": text_embedding[1],
+                "flag": 0
+            },
+        }
+        self.controlnet.run_with_np(controlnet_input_map)
+        self.handle_controlnet_weight(controlnet_weight)
+        c_unet_res = self.unet.run_with_np()
+        res = [np.concatenate((cf_unet_res[0], c_unet_res[0]), axis=0)]
+        return res
 
     def run_unet_with_cfg(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
         if self.cur_step == 0:
             return self.run_unet_with_cfg_first_step(latent, t, text_embedding, controlnet_img, controlnet_weight)
-        use_controlnet_flag = self.controlnet_run(latent, t, text_embedding, controlnet_img, controlnet_weight)
+        use_controlnet_flag = self.judge_use_controlnet(controlnet_img, controlnet_weight)
         if use_controlnet_flag:
-            res = self.unet.run_with_np()
+            res = self.run_cfg_unet_controlnet_step(latent, t, text_embedding, controlnet_img, controlnet_weight)
         else:
             # negative prompt
             unet_input_map = {
@@ -906,10 +913,9 @@ class StableDiffusionPipeline:
         return res
 
     def run_unet_with_cfg_first_step(self, latent, t, text_embedding, controlnet_img, controlnet_weight=1.0):
-        use_controlnet_flag = self.controlnet_run(latent, t, text_embedding, controlnet_img, controlnet_weight)
+        use_controlnet_flag = self.judge_use_controlnet(controlnet_img, controlnet_weight)
         if use_controlnet_flag:
-            self.unet.get_stage_by_shape(latent.shape, 0)
-            res = self.unet.run_with_np()
+            res = self.run_cfg_unet_controlnet_first_step(latent, t, text_embedding, controlnet_img, controlnet_weight)
         else:
             unet_input_map = {
                 0: {
@@ -1147,7 +1153,6 @@ class StableDiffusionPipeline:
             do_classifier_free_guidance = guidance_scale > 1.0
             # num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
             extra_step_kwargs = {}
-
             print("step = ", num_inference_steps)
             print("strength = ", strength)
             print("real inference step = ", timesteps)

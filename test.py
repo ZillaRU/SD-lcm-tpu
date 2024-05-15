@@ -122,7 +122,8 @@ class ModelManager():
             gr.Info("{} LoRa have been loaded".format(model_select))
             return self.current_model_name
 
-    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None):
+    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None,
+                                 controlnet_img=None, controlnet_weight=1.0,controlnet_args={}):
         if self.pre_check_latent_size(latent_size):
             self.pipe.set_height_width(SIZE[latent_size][1][1], SIZE[latent_size][1][0])
             img_pil = self.pipe(
@@ -134,7 +135,10 @@ class ModelManager():
                 scheduler=scheduler,
                 guidance_scale=guidance_scale,
                 enable_prompt_weight = enable_prompt_weight,
-                seeds=[random.randint(0, 1000000) if seed is None else seed]
+                seeds=[random.randint(0, 1000000) if seed is None else seed],
+                controlnet_img=controlnet_img,
+                controlnet_args=controlnet_args,
+                controlnet_weight=controlnet_weight
             )
 
             return img_pil
@@ -159,6 +163,17 @@ negative_prompt = "low quality, bad resolution"
 latent_size = 0
 scheduler = "Euler a"
 step = 4
-guidance_scale = 1.1
+guidance_scale = 0.9
 img = model_manager.generate_image_from_text(prompt, step=step, negative_prompt=negative_prompt, latent_size=latent_size, scheduler=scheduler, guidance_scale=guidance_scale)
 img.save("test.png")
+
+controlnet_img = Image.open("test.png")
+controlnet_weight = 1
+controlnet_args={
+    "low_threshold": 150,
+    "height_threshold": 250,
+    "save_canny": True
+}
+guidance_scale = 1.2
+img = model_manager.generate_image_from_text(prompt, step=step, negative_prompt=negative_prompt, latent_size=latent_size, scheduler=scheduler, guidance_scale=guidance_scale, controlnet_img=controlnet_img, controlnet_weight=controlnet_weight, controlnet_args=controlnet_args)
+img.save("test_controlnet.png")

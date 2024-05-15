@@ -46,6 +46,7 @@ model_path = {
         "unet": "unet_1_1684x_F16.bmodel",
         "vae_decoder": "vae_decoder_multize.bmodel",
         "vae_encoder": "vae_encoder_multize.bmodel",
+        "controlnet": "canny_multize",
         "latent_shape": {
             "512x512": "True",
             "768x512": "False",
