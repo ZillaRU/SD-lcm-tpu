@@ -101,7 +101,8 @@ class ModelManager():
                     )
                     self.current_model_name = model_select
                     self.controlnet = controlnet
-                    return self.current_model_name, self.controlnet
+
+                return self.current_model_name, self.controlnet
 
             if self.current_model_name != model_select:
                 # change both te, unet, vae
