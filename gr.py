@@ -93,15 +93,15 @@ class ModelManager():
             model_select = None
         if model_select is not None:
             if self.pipe is None:
-                self.pre_check(model_select, check_type=["te", "unet", "vae"])
-                self.pipe = StableDiffusionPipeline(
-                    basic_model=model_select,
-                    scheduler=scheduler,
-                    controlnet_name=controlnet,
-                )
-                self.current_model_name = model_select
-                self.controlnet = controlnet
-                return self.current_model_name, self.controlnet
+                if self.pre_check(model_select, check_type=["te", "unet", "vae"]):
+                    self.pipe = StableDiffusionPipeline(
+                        basic_model=model_select,
+                        scheduler=scheduler,
+                        controlnet_name=controlnet,
+                    )
+                    self.current_model_name = model_select
+                    self.controlnet = controlnet
+                    return self.current_model_name, self.controlnet
 
             if self.current_model_name != model_select:
                 # change both te, unet, vae
