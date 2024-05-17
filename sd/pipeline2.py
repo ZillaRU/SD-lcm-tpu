@@ -1076,18 +1076,21 @@ class StableDiffusionPipeline:
             
             # do classifier free guidance
             if guidance_scale > 1.0 or negative_prompt is not None:
-                uncond_token = ""
-                if negative_prompt is not None:
-                    uncond_token = negative_prompt
-                tokens_uncond = self.tokenizer(
-                    uncond_token,
-                    padding="max_length",
-                    max_length=self.tokenizer.model_max_length,
-                    truncation=True
-                ).input_ids
-                uncond_embeddings = self.text_encoder(
-                    {"tokens": np.array([tokens_uncond], dtype=np.int32)})[0]
+                if negative_prompt is None:
+                    negative_prompt = ""
+            uncond_token = ""
+            if negative_prompt is not None:
+                uncond_token = negative_prompt
+            tokens_uncond = self.tokenizer(
+                uncond_token,
+                padding="max_length",
+                max_length=self.tokenizer.model_max_length,
+                truncation=True
+            ).input_ids
+            uncond_embeddings = self.text_encoder(
+                {"tokens": np.array([tokens_uncond], dtype=np.int32)})[0]
             text_embeddings = np.concatenate((uncond_embeddings, text_embeddings), axis=0)
+        
         if guidance_scale <=1.0:
             text_embeddings = text_embeddings[1]
         # controlnet image prepare
