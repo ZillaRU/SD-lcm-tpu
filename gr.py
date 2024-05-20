@@ -146,7 +146,26 @@ class ModelManager():
             gr.Info("Please select a model")
             return None, None
 
-    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size_index=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None):
+    def ratio_resize(self, source_img, latent_size_index):
+        target_size = SIZE[latent_size_index][1]
+        old_size = list(source_img.size)  # (width, height)
+        if target_size != old_size:
+            ratio = min(float(target_size[i]) / old_size[i] for i in range(len(old_size)))
+            new_size = tuple(int(i * ratio) for i in old_size)
+
+            img = source_img.resize(new_size)
+            new_img = Image.new("RGB", target_size, (0, 0, 0))
+            new_img.paste(img, ((target_size[0] - new_size[0]) // 2, (target_size[1] - new_size[1]) // 2))
+
+            return new_img
+        else:
+            return source_img
+
+    def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size_index=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None, local_img=None):
+        if image is None and local_img is not None:
+            image = Image.open(local_img)
+        if image is not None:
+            image = self.ratio_resize(image, latent_size_index)
         if self.pipe is None:
             gr.Info("Please select a model")
             return None
@@ -196,7 +215,11 @@ if __name__ == '__main__':
             with gr.Column():
                 input_content = gr.Textbox(lines=1, label="Prompt")
                 negative_prompt = gr.Textbox(lines=1, label="Negative prompt")
-                upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='pil', label="image")
+                with gr.Tab("Upload"):
+                    upload_image = gr.Image(sources=['upload', 'webcam', 'clipboard'], type='pil', label="image")
+                with gr.Tab("Airbox"):
+                    local_img = gr.FileExplorer(glob='*.jpg', root_dir='./', label="image", file_count='single')
+
                 with gr.Row():
                     num_step = gr.Slider(minimum=3, maximum=10, value=4, step=1, label="Steps", scale=2)
                     denoise = gr.Slider(minimum=0.2, maximum=1.0, value=0.5, step=0.1, label="Denoising Strength",
@@ -220,16 +243,38 @@ if __name__ == '__main__':
                     controlnet = gr.Dropdown(choices=CONTROLNET, value=None, label="Controlnet", interactive=True)
                     load_bt = gr.Button(value="Load Model", interactive=True)
                 out_img = gr.Image(label="Output")
+        # print(local_image)
+        # print(upload_image)
+        with gr.Row():
+            with gr.Column():
+                # gr.Markdown("***Example***")
+                example = gr.Examples(
+                    label="Example",
+                    examples=[["a young woman stands at the center, extending her arms wide against a vast, overcast seascape. She is positioned on a stony beach, where dark, smooth pebbles cover the ground. The ocean is calm with gentle waves lapping at the shore. Her attire is stylishly casual, with a street fashion sports a fitted grey crop top and voluminous black cargo pants, paired with a studded black leather jacket that adds a touch of rebellious flair. A black beanie caps her long hair that falls partially across her face, and she holds a black designer tote bag in her outstretched hand. Her posture exudes a sense of freedom and joy, embodying a spontaneous moment captured against the moody backdrop of an overcast sky and the tranquil sea.",
+                               "ugly, poor details, bad anatomy",
+                               0.5,
+                               0.2,
+                               "Euler a",
+                               "512:768"],
+                              ["1girl, ponytail ,white hair, purple eyes, medium breasts, collarbone, flowers and petals, landscape, background, rose, abstract",
+                               "ugly, poor details, bad anatomy",
+                               0.2,
+                               0,
+                               "LCM",
+                               "512:768"]
+                              ],
+                    inputs=[input_content, negative_prompt, denoise, guidance_scale, scheduler_type, latent_size_index]
+                )
 
         scheduler_type.change(model_manager.update_slider, scheduler_type, num_step)
         clear_bt.add(components=[out_img])
         load_bt.click(model_manager.change_model, [model_select, scheduler_type, controlnet], [model_select, controlnet])
         input_content.submit(model_manager.generate_image_from_text,
-                             [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
+                             [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt, local_img], [out_img])
         negative_prompt.submit(model_manager.generate_image_from_text,
-                             [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
+                             [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt, local_img], [out_img])
         submit_bt.click(model_manager.generate_image_from_text,
-                        [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt], [out_img])
+                        [input_content, upload_image, num_step, denoise, seed_number, latent_size_index, scheduler_type, guidance_scale, enable_prompt_weight, negative_prompt, local_img], [out_img])
 
     # 运行 Gradio 应用
     demo.queue(max_size=10)
