@@ -35,13 +35,8 @@ class ModelManager():
         self.pipe = None
         self.current_scheduler = scheduler[0]
         self.controlnet = None
+        self.current_model_input_shapes = None
 
-    def pre_check_latent_size(self, latent_size_index):
-        model_input_shape_list = get_model_input_info(self.pipe.unet.basic_info["stage_info"])
-        if SIZE[latent_size_index][1] in model_input_shape_list:
-            return True
-        else:
-            return False
 
     def pre_check(self, model_select, check_type=None):
         check_pass = True
@@ -83,6 +78,7 @@ class ModelManager():
                     )
                     self.current_model_name = model_select
                     self.controlnet = controlnet
+                    self.current_model_input_shapes = get_model_input_info(self.pipe.unet.basic_info["stage_info"]) # W H
 
                 return self.current_model_name, self.controlnet
 
@@ -99,6 +95,8 @@ class ModelManager():
                         self.pipe.change_controlnet(controlnet)
                         self.current_model_name = model_select
                         self.controlnet = controlnet
+                        self.current_model_input_shapes = get_model_input_info(self.pipe.unet.basic_info["stage_info"])  # W H
+
 
                     except Exception as e:
                         print(e)
@@ -138,7 +136,7 @@ class ModelManager():
         if self.pipe is None:
             gr.Info("Please select a model")
             return None
-        elif self.pre_check_latent_size(latent_size_index):
+        elif SIZE[latent_size_index][1] in self.current_model_input_shapes:
             self.pipe.set_height_width(SIZE[latent_size_index][1][1], SIZE[latent_size_index][1][0])
             img_pil = self.pipe(
                 init_image=image,
@@ -154,7 +152,7 @@ class ModelManager():
 
             return img_pil
         else:
-            gr.Info("{} do not support this size, please check model info".format(self.current_model_name))
+            gr.Warning("{} do not support this size, please check model info".format(self.current_model_name))
 
     def update_slider(self, scheduler):
         if scheduler != self.current_scheduler and scheduler == "LCM":
