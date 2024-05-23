@@ -1,22 +1,23 @@
 import gradio as gr
 from sd import StableDiffusionPipeline
-from PIL import Image
-import numpy as np
 import os
 import time
 import random
-import torch
-from model_path import model_path
 from sd.scheduler import samplers_k_diffusion
-from itertools import permutations
 import warnings
+from PIL import Image
+from utils.tools import create_size, ratio_resize, seed_torch, get_model_input_info, get_model_path
 
 warnings.filterwarnings("ignore")
+model_path = get_model_path()
 
 DEVICE_ID = 0
 BASENAME = list(model_path.keys())
 CONTROLNET = os.listdir('./models/controlnet')
-CONTROLNET = [i.split('.')[0] for i in CONTROLNET]
+
+if len(CONTROLNET) != 0:
+    CONTROLNET = [i.split('.')[0] for i in CONTROLNET]
+
 scheduler = ["LCM", "DDIM", "DPM Solver++"]
 for i in samplers_k_diffusion:
    scheduler.append(i[0])
@@ -25,23 +26,7 @@ bad_scheduler = ["DPM Solver++", "DPM fast", "DPM adaptive"]
 for i in bad_scheduler:
     scheduler.remove(i)
 
-def create_size(*size_elements):
-    unique_size_elements = sorted(list(set(size_elements)))
-    all_sizes = []
-    for i in unique_size_elements:
-        for j in unique_size_elements:
-            all_sizes.append([i, j])
-    return [ (f"{size[0]}:{size[1]}", size) for size in all_sizes]
-
 SIZE = create_size(512, 768) # [('512:512', [512,512]), ] W, H
-
-def seed_torch(seed=1029):
-    seed = seed % 4294967296
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)  # 为了禁止hash随机化，使得实验可复现
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    print("set seed to:", seed)
 
 
 class ModelManager():
@@ -50,15 +35,7 @@ class ModelManager():
         self.pipe = None
         self.current_scheduler = scheduler[0]
         self.controlnet = None
-        # self.change_model(BASENAME[0], scheduler=scheduler[0])
-
-    def pre_check_latent_size(self, latent_size_index):
-        latent_size_str = "{}x{}".format(SIZE[latent_size_index][1][0], SIZE[latent_size_index][1][1])
-        support_status = model_path[self.current_model_name]["latent_shape"].get(latent_size_str)
-        if support_status == "True":
-            return True
-        else:
-            return False
+        self.current_model_input_shapes = None
 
 
     def pre_check(self, model_select, check_type=None):
@@ -101,6 +78,7 @@ class ModelManager():
                     )
                     self.current_model_name = model_select
                     self.controlnet = controlnet
+                    self.current_model_input_shapes = get_model_input_info(self.pipe.unet.basic_info["stage_info"]) # W H
 
                 return self.current_model_name, self.controlnet
 
@@ -117,6 +95,8 @@ class ModelManager():
                         self.pipe.change_controlnet(controlnet)
                         self.current_model_name = model_select
                         self.controlnet = controlnet
+                        self.current_model_input_shapes = get_model_input_info(self.pipe.unet.basic_info["stage_info"])  # W H
+
 
                     except Exception as e:
                         print(e)
@@ -146,30 +126,17 @@ class ModelManager():
             gr.Info("Please select a model")
             return None, None
 
-    def ratio_resize(self, source_img, latent_size_index):
-        target_size = SIZE[latent_size_index][1]
-        old_size = list(source_img.size)  # (width, height)
-        if target_size != old_size:
-            ratio = min(float(target_size[i]) / old_size[i] for i in range(len(old_size)))
-            new_size = tuple(int(i * ratio) for i in old_size)
-
-            img = source_img.resize(new_size)
-            new_img = Image.new("RGB", target_size, (0, 0, 0))
-            new_img.paste(img, ((target_size[0] - new_size[0]) // 2, (target_size[1] - new_size[1]) // 2))
-
-            return new_img
-        else:
-            return source_img
 
     def generate_image_from_text(self, text, image=None, step=4, strength=0.5, seed=None, latent_size_index=None, scheduler=None, guidance_scale=None, enable_prompt_weight=None, negative_prompt=None, local_img=None):
         if image is None and local_img is not None:
             image = Image.open(local_img)
         if image is not None:
-            image = self.ratio_resize(image, latent_size_index)
+            target_size = SIZE[latent_size_index][1]
+            image = ratio_resize(image, target_size)
         if self.pipe is None:
             gr.Info("Please select a model")
             return None
-        elif self.pre_check_latent_size(latent_size_index):
+        elif SIZE[latent_size_index][1] in self.current_model_input_shapes:
             self.pipe.set_height_width(SIZE[latent_size_index][1][1], SIZE[latent_size_index][1][0])
             img_pil = self.pipe(
                 init_image=image,
@@ -185,7 +152,7 @@ class ModelManager():
 
             return img_pil
         else:
-            gr.Info("{} do not support this size, please check model info".format(self.current_model_name))
+            gr.Warning("{} do not support this size, please check model info".format(self.current_model_name))
 
     def update_slider(self, scheduler):
         if scheduler != self.current_scheduler and scheduler == "LCM":
@@ -230,7 +197,7 @@ if __name__ == '__main__':
 
                 with gr.Row():
                     seed_number = gr.Number(value=1, label="Seed", scale=1)
-                    latent_size_index = gr.Dropdown(choices=[i[0] for i in SIZE], label="Size", value=[i[0] for i in SIZE][0], type="index", interactive=True,scale=1)
+                    latent_size_index = gr.Dropdown(choices=[i[0] for i in SIZE], label="Size (W:H)", value=[i[0] for i in SIZE][0], type="index", interactive=True,scale=1)
                     scheduler_type = gr.Dropdown(choices=scheduler, value=scheduler[0], label="Scheduler", interactive=True,scale=1)
                 with gr.Row():
                     clear_bt = gr.ClearButton(value="Clear",
@@ -243,25 +210,30 @@ if __name__ == '__main__':
                     controlnet = gr.Dropdown(choices=CONTROLNET, value=None, label="Controlnet", interactive=True)
                     load_bt = gr.Button(value="Load Model", interactive=True)
                 out_img = gr.Image(label="Output")
-        # print(local_image)
-        # print(upload_image)
+
         with gr.Row():
             with gr.Column():
-                # gr.Markdown("***Example***")
                 example = gr.Examples(
                     label="Example",
-                    examples=[["a young woman stands at the center, extending her arms wide against a vast, overcast seascape. She is positioned on a stony beach, where dark, smooth pebbles cover the ground. The ocean is calm with gentle waves lapping at the shore. Her attire is stylishly casual, with a street fashion sports a fitted grey crop top and voluminous black cargo pants, paired with a studded black leather jacket that adds a touch of rebellious flair. A black beanie caps her long hair that falls partially across her face, and she holds a black designer tote bag in her outstretched hand. Her posture exudes a sense of freedom and joy, embodying a spontaneous moment captured against the moody backdrop of an overcast sky and the tranquil sea.",
+                    examples=[
+                              ["1girl, ponytail ,white hair, purple eyes, medium breasts, collarbone, flowers and petals, landscape, background, rose, abstract",
+                               "ugly, poor details, bad anatomy",
+                               0.5,
+                               0,
+                               "Euler a",
+                               "512:768"],
+                              ["upper body photo, fashion photography of cute Hatsune Miku, very long turquoise pigtails and a school uniform-like outfit. She has teal eyes and very long pigtails held with black and red square-shaped ribbons that have become a signature of her design, moonlight passing through hair.",
+                               "ugly, poor details, bad anatomy",
+                               0.5,
+                               0.3,
+                               "DPM++ 2M SDE Karras",
+                               "512:768"],
+                               ["a young woman stands at the center, extending her arms wide against a vast, overcast seascape. She is positioned on a stony beach, where dark, smooth pebbles cover the ground. The ocean is calm with gentle waves lapping at the shore. Her attire is stylishly casual, with a street fashion sports a fitted grey crop top and voluminous black cargo pants, paired with a studded black leather jacket that adds a touch of rebellious flair. A black beanie caps her long hair that falls partially across her face, and she holds a black designer tote bag in her outstretched hand. Her posture exudes a sense of freedom and joy, embodying a spontaneous moment captured against the moody backdrop of an overcast sky and the tranquil sea.",
                                "ugly, poor details, bad anatomy",
                                0.5,
                                0.2,
-                               "Euler a",
-                               "512:768"],
-                              ["1girl, ponytail ,white hair, purple eyes, medium breasts, collarbone, flowers and petals, landscape, background, rose, abstract",
-                               "ugly, poor details, bad anatomy",
-                               0.2,
-                               0,
                                "LCM",
-                               "512:768"]
+                               "512:768"],
                               ],
                     inputs=[input_content, negative_prompt, denoise, guidance_scale, scheduler_type, latent_size_index]
                 )
