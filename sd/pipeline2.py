@@ -18,9 +18,9 @@ from . import ultimate
 import random
 import os
 from .newtool import UntoolEngineOV, link_bmodel
-from model_path import model_path
+from utils.tools import get_model_path
 
-
+model_path = get_model_path()
 opt_C = 4
 opt_f = 8
 SD2_1_MODELS = ['v2-1_768-ema-pruned', 'illuminuttyDiffusion_v111', 'antalpha-sd2-1-ep20-gs529400']
