@@ -98,16 +98,19 @@ if __name__ == '__main__':
 
                 with gr.Column():
                     with gr.Row():
-                        shape_h = gr.Number(value=512, label="shape_h", interactive=True)
-                        shape_w = gr.Number(value=512, label="shape_w", interactive=True)
+                        shape_lists = gr.Textbox(value="512 512",
+                                                 label="shape lists",
+                                                 info="support multi shapes(H:W), please use space to split, "
+                                                      "only accept digit.\t\n"
+                                                      "ex. 512 512 512 768 means [[512, 512], [512, 768]]")
+
                     with gr.Row():
                         b_batch_num = gr.Number(value=1, label="batch", min_width=20)
                         b_version = gr.Dropdown(choices=['sd15', 'sd21', 'SDXL'], type='value', label="version",
                                                 value='sd15',
                                                 interactive=True, min_width=160)
                     b_clear_all_bt = gr.ClearButton(value="Clear All",
-                                                    components=[shape_h,
-                                                                shape_w,
+                                                    components=[shape_lists,
                                                                 b_info_window])
                     step_2_bt = gr.Button(value="Convert to bmodel", variant='primary')
 
@@ -127,7 +130,7 @@ if __name__ == '__main__':
                                    debug_bool,
                                    civital_token], [info_window])
 
-        step_2_bt.click(run_back_2, [shape_h, shape_w, b_version, model_path, b_batch_num], [b_info_window])
+        step_2_bt.click(run_back_2, [shape_lists, b_version, model_path, b_batch_num], [b_info_window])
 
     demo.queue(max_size=2)
     demo.launch(debug=False, show_api=True, share=False, server_name="0.0.0.0")

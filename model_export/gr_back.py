@@ -6,6 +6,7 @@ import os
 import requests
 import uuid
 import subprocess
+import re
 
 class GrConvertorPtOnnx():
     def __init__(self, unet_path, controlnet_path=None, lora_path=None, unet_url=None, controlnet_url=None, lora_url=None, batch=None, version=None, merge=None, output_name=None, debug=None):
@@ -190,8 +191,29 @@ class GrConvertorBmodel():
         gr.Info("Convert Bmodels Finish")
 
 
-def run_back_2(shape_h, shape_w, version, path, batch, output_bmodel="", progress=gr.Progress()):
-    shape_lists = [[shape_h, shape_w]]
+def run_back_2(shape_lists_str, version, path, batch, output_bmodel="", progress=gr.Progress()):
+    if path is None:
+        gr.Warning("please select the model path folder")
+        return
+    def has_non_digit(s):
+        pattern = r'[^\d\s]'
+        return bool(re.search(pattern, s))
+
+    if has_non_digit(shape_lists_str):
+        gr.Warning("Only accept digit")
+        return
+
+    shape_nums = shape_lists_str.split(" ")
+
+    shape_len = len(shape_nums)
+    if shape_len % 2 != 0:
+        gr.Warning("Please input valid shape lists, should be even")
+        return
+    else:
+        shape_lists = []
+        for i in range(0, shape_len, 2):
+            shape_lists.append([int(shape_nums[i]), int(shape_nums[i+1])])
+
     progress(0, desc="Starting...")
     gr_convertor = GrConvertorBmodel(shape_lists, version, path, batch, output_bmodel)
 
