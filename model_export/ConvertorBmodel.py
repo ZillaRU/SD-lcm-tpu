@@ -273,7 +273,7 @@ class ConvertorBmodel():
                        f"--model_def vae_decoder.pt --mlir sd15_vd_{shape_str}.mlir"]
                 self._os_system(cmd)
                 cmd = [
-                    f"model_deploy.py --mlir sd15_vd_{shape_str}.mlir --quantize F16 --chip bm1684x --model sdv15_vd_{shape_str}.bmodel"]
+                    f"model_deploy.py --mlir sd15_vd_{shape_str}.mlir --quantize BF16 --chip bm1684x --model sdv15_vd_{shape_str}.bmodel"]
                 self._os_system(cmd)
                 keep_file.append(f"sdv15_vd_{shape_str}.bmodel")
                 cmd = self.remove_tmp_file(keep_file)
